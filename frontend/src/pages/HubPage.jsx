@@ -11,7 +11,7 @@ import {
   useReordenarLinks,
 } from '../hooks/useHubs';
 import { useAlternarFavorito } from '../hooks/useFavorites';
-import { HubPlate } from '../features/hubs/HubPlate';
+import { HubHero } from '../features/hubs/HubHero';
 import { LinkGrid } from '../features/links/LinkGrid';
 import { LinkFormModal } from '../features/links/LinkFormModal';
 import { Button } from '../components/ui/Button';
@@ -111,20 +111,18 @@ export default function HubPage() {
 
   return (
     <div className="space-y-6">
-      <HubPlate
+      <HubHero
         hub={hub}
         quantidadeDeLinks={totalDeLinks}
         acoes={
           hub.canEdit && (
             <>
-              <Button variant="outline" size="sm" onClick={() => setSecaoAberta(true)}>
-                <FolderPlus className="h-4 w-4" />
-                {/* `sr-only` e não `hidden`: no celular o rótulo some da tela,
-                    mas continua existindo para o leitor de tela. */}
-                <span className="sr-only sm:not-sr-only">Nova seção</span>
+              <Button variant="translucido" onClick={() => setSecaoAberta(true)}>
+                <FolderPlus className="h-[18px] w-[18px]" />
+                Nova seção
               </Button>
-              <Button size="sm" onClick={abrirNovoLink}>
-                <Plus className="h-4 w-4" />
+              <Button onClick={abrirNovoLink}>
+                <Plus className="h-[18px] w-[18px]" />
                 Novo link
               </Button>
             </>
@@ -153,12 +151,9 @@ export default function HubPage() {
             .filter((secao) => secao.links.length > 0 || hub.canEdit)
             .map((secao) => (
               <section key={secao.id}>
-                <div className="mb-3 flex items-center gap-3">
-                  <h2 className="plate-label text-ink">{secao.name}</h2>
-                  <span className="h-px flex-1 bg-hairline" />
-                  <span className="font-mono text-xs text-muted">
-                    {String(secao.links.length).padStart(2, '0')}
-                  </span>
+                <div className="group/secao mb-3.5 flex items-center gap-2.5">
+                  <h2 className="text-[15px] font-bold text-graphite">{secao.name}</h2>
+                  <span className="pill bg-ground text-muted">{secao.links.length}</span>
                   {hub.canEdit && (
                     <button
                       type="button"
@@ -171,11 +166,12 @@ export default function HubPage() {
                         }
                       }}
                       aria-label={`Remover a seção ${secao.name}`}
-                      className="rounded p-1 text-hairline transition-colors hover:text-danger"
+                      className="rounded-lg p-1.5 text-ink-200 transition-all hover:bg-danger/8 hover:text-danger lg:opacity-0 lg:group-hover/secao:opacity-100 lg:group-focus-within/secao:opacity-100"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   )}
+                  <span className="h-px flex-1 bg-hairline" />
                 </div>
 
                 {secao.links.length > 0 ? (

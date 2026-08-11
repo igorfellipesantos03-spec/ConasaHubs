@@ -24,7 +24,7 @@ export default function Favoritos() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="plate-label text-tech">Atalhos</p>
+        <p className="eyebrow text-tech">Atalhos</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">Meus favoritos</h1>
         <p className="mt-1 text-muted">Os links que você marcou com estrela, de qualquer setor.</p>
       </header>

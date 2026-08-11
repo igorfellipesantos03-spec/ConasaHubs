@@ -56,7 +56,7 @@ export function Modal({ open, onClose, title, description, children, footer }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/45 p-0 backdrop-blur-[3px] sm:items-center sm:p-4"
       onMouseDown={(evento) => evento.target === evento.currentTarget && onClose()}
     >
       <div
@@ -64,11 +64,11 @@ export function Modal({ open, onClose, title, description, children, footer }) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="animate-rise max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-surface shadow-[0_24px_60px_-12px_rgba(15,44,89,0.35)] sm:max-w-lg sm:rounded-card"
+        className="animate-rise max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-surface shadow-lift sm:max-w-lg sm:rounded-card"
       >
         <header className="flex items-start justify-between gap-4 border-b border-hairline px-5 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-ink">{title}</h2>
+            <h2 className="text-lg font-bold text-ink">{title}</h2>
             {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
           </div>
           <button
@@ -85,7 +85,7 @@ export function Modal({ open, onClose, title, description, children, footer }) {
         <div className="px-5 py-4">{children}</div>
 
         {footer && (
-          <footer className="flex justify-end gap-2 border-t border-hairline bg-ground/60 px-5 py-3">
+          <footer className="flex justify-end gap-2 border-t border-hairline bg-ground/50 px-5 py-3.5">
             {footer}
           </footer>
         )}

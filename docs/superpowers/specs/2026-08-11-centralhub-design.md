@@ -29,8 +29,8 @@ edição colaborativa, e uma interface que as pessoas queiram usar como página 
 ## Stack
 
 - **Frontend:** React 18 + Vite (JavaScript), React Router, TanStack Query, Tailwind CSS,
-  `lucide-react`, `@dnd-kit`, `@fontsource/inter` (fonte self-hosted — o servidor interno
-  pode não ter saída para a internet).
+  `lucide-react`, `@dnd-kit`, `@fontsource/plus-jakarta-sans` (fonte self-hosted — o
+  servidor interno pode não ter saída para a internet).
 - **Backend:** Node.js + Express, Prisma, PostgreSQL, Zod, `jsonwebtoken`, `argon2`,
   `helmet`, `express-rate-limit`, `pino`.
 - **Testes:** Vitest + Supertest (backend), Vitest + Testing Library (frontend).
@@ -74,16 +74,27 @@ a senha do usuário nunca é logada nem persistida.
 ## Identidade visual
 
 ```
---color-primary: #0F2C59   /* header, títulos, identidade */
---color-accent:  #00A8CC   /* botões de ação e links ativos */
---color-bg:      #F4F6F9   /* fundo do sistema */
---color-surface: #FFFFFF   /* cards */
---color-text:    #212529   /* texto principal */
+--color-ink:      #0F2C59   /* azul institucional: marca e topo dos setores */
+--color-tech:     #00A8CC   /* azul técnico: ações e destaques */
+--color-ground:   #F4F6F9   /* fundo do sistema */
+--color-surface:  #FFFFFF   /* cards */
+--color-graphite: #212529   /* texto principal */
 ```
 
-Telas: **Login** (split screen institucional), **Home** (grid de setores + favoritos),
-**HubPage** (links por categoria, edição inline para curadores), **Admin** (setores,
-curadores, mapeamentos, usuários, auditoria).
+Tipografia **Plus Jakarta Sans**, raios generosos (16px nos cards) e sombras com tinta
+azul no lugar de bordas duras. O azul institucional fica concentrado na marca e no topo
+de cada setor, em vez de uma faixa maciça atravessando a tela — o cabeçalho é claro.
+
+A marca da Conasa (as ondas) reaparece em escala grande e opacidade baixa como textura
+do topo do setor e do painel de login: a identidade é o próprio gráfico, sem ornamento
+inventado. Como as ondas são brancas, a marca sempre vem sobre fundo azul.
+
+As grades de cards usam colunas fluidas (`auto-fill` com mínimo de 320px), preenchendo a
+largura em qualquer monitor em vez de pararem em três colunas.
+
+Telas: **Login** (split screen institucional), **Setores** (grid de hubs), **HubPage**
+(links por seção, edição inline para curadores), **Favoritos** e **Admin** (usuários,
+curadores, mapeamentos, auditoria).
 
 ## Fora de escopo (fase 2)
 

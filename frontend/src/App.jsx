@@ -56,7 +56,7 @@ function SomenteAdmin() {
 function NaoEncontrado() {
   return (
     <div className="card px-6 py-12 text-center">
-      <p className="plate-label text-muted">Erro 404</p>
+      <p className="eyebrow">Erro 404</p>
       <h1 className="mt-2 text-xl font-semibold text-ink">Página não encontrada</h1>
       <p className="mt-1 text-muted">O endereço digitado não existe no CentralHub.</p>
     </div>

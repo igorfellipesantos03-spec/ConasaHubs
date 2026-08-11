@@ -30,24 +30,26 @@ export default function Admin() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="plate-label text-tech">Administração</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">Configurações do CentralHub</h1>
-        <p className="mt-1 text-muted">
+        <h1 className="text-[28px] font-extrabold text-ink">Administração</h1>
+        <p className="mt-1.5 text-[15px] text-muted">
           Quem administra, quem cura cada setor e de onde vem o setor de cada pessoa.
         </p>
       </header>
 
-      <div className="flex gap-1 border-b border-hairline" role="tablist">
+      <div
+        className="inline-flex gap-1 overflow-x-auto rounded-control bg-ground p-1"
+        role="tablist"
+      >
         {ABAS.map((item) => (
           <button
             key={item.id}
             role="tab"
             aria-selected={aba === item.id}
             onClick={() => setAba(item.id)}
-            className={`-mb-px border-b-2 px-3.5 py-2 text-sm transition-colors ${
+            className={`whitespace-nowrap rounded-[9px] px-3.5 py-2 text-sm font-semibold transition-all ${
               aba === item.id
-                ? 'border-tech font-medium text-ink'
-                : 'border-transparent text-muted hover:text-graphite'
+                ? 'bg-surface text-ink shadow-soft'
+                : 'text-muted hover:text-graphite'
             }`}
           >
             {item.rotulo}
@@ -82,13 +84,13 @@ function AbaUsuarios() {
   return (
     <section className="space-y-4">
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
         <input
           value={busca}
           onChange={(evento) => setBusca(evento.target.value)}
           placeholder="Buscar por nome ou usuário"
           aria-label="Buscar usuário"
-          className="w-full rounded-lg border border-hairline bg-surface py-2 pl-9 pr-3 text-sm focus:border-tech focus:outline-none"
+          className="w-full rounded-control border border-hairline bg-surface py-2.5 pl-10 pr-3 text-sm transition-colors focus:border-tech focus:outline-none focus:ring-4 focus:ring-tech/10"
         />
       </div>
 
@@ -107,17 +109,17 @@ function AbaUsuarios() {
         <Tabela cabecalho={['Pessoa', 'Departamento (Protheus)', 'Setor', 'Papel', 'Situação']}>
           {data.users.map((usuario) => (
             <tr key={usuario.id} className="border-t border-hairline">
-              <td className="px-3 py-2.5">
+              <td className="px-4 py-3">
                 <p className="font-medium text-graphite">{usuario.name}</p>
-                <p className="font-mono text-xs text-muted">{usuario.username}</p>
+                <p className="text-xs text-muted">{usuario.username}</p>
               </td>
-              <td className="px-3 py-2.5 text-muted">
+              <td className="px-4 py-3 text-muted">
                 {usuario.protheusDeptName ?? '—'}
                 {usuario.protheusDeptCode && (
-                  <span className="ml-1 font-mono text-xs">({usuario.protheusDeptCode})</span>
+                  <span className="ml-1 text-xs">({usuario.protheusDeptCode})</span>
                 )}
               </td>
-              <td className="px-3 py-2.5">
+              <td className="px-4 py-3">
                 <select
                   value={usuario.hubId ?? ''}
                   onChange={(evento) =>
@@ -127,7 +129,7 @@ function AbaUsuarios() {
                       `Setor de ${usuario.name} atualizado.`,
                     )
                   }
-                  className="w-full rounded-lg border border-hairline bg-surface px-2 py-1.5 text-sm focus:border-tech focus:outline-none"
+                  className="w-full rounded-lg border border-hairline bg-surface px-2.5 py-2 text-sm transition-colors focus:border-tech focus:outline-none"
                 >
                   <option value="">Sem setor</option>
                   {hubs.map((hub) => (
@@ -137,22 +139,22 @@ function AbaUsuarios() {
                   ))}
                 </select>
                 {usuario.hubOverride && (
-                  <span className="plate-label mt-1 block text-ink-300">definido manualmente</span>
+                  <span className="mt-1 block text-xs font-semibold text-ink-400">definido manualmente</span>
                 )}
               </td>
-              <td className="px-3 py-2.5">
+              <td className="px-4 py-3">
                 <select
                   value={usuario.role}
                   onChange={(evento) =>
                     salvar(usuario, { role: evento.target.value }, `Papel de ${usuario.name} atualizado.`)
                   }
-                  className="rounded-lg border border-hairline bg-surface px-2 py-1.5 text-sm focus:border-tech focus:outline-none"
+                  className="rounded-lg border border-hairline bg-surface px-2.5 py-2 text-sm transition-colors focus:border-tech focus:outline-none"
                 >
                   <option value="USER">Usuário</option>
                   <option value="ADMIN">Administrador</option>
                 </select>
               </td>
-              <td className="px-3 py-2.5">
+              <td className="px-4 py-3">
                 <button
                   type="button"
                   onClick={() =>
@@ -162,7 +164,7 @@ function AbaUsuarios() {
                       usuario.active ? `${usuario.name} desativado.` : `${usuario.name} reativado.`,
                     )
                   }
-                  className={`plate-label rounded px-2 py-1 transition-colors ${
+                  className={`pill transition-colors ${
                     usuario.active
                       ? 'bg-success/10 text-success hover:bg-success/20'
                       : 'bg-danger/10 text-danger hover:bg-danger/20'
@@ -255,15 +257,15 @@ function AbaCuradores() {
         <Tabela cabecalho={['Pessoa', 'Setor', 'Desde', '']}>
           {curadores.map((curador) => (
             <tr key={`${curador.userId}-${curador.hubId}`} className="border-t border-hairline">
-              <td className="px-3 py-2.5">
+              <td className="px-4 py-3">
                 <p className="font-medium text-graphite">{curador.name}</p>
-                <p className="font-mono text-xs text-muted">{curador.username}</p>
+                <p className="text-xs text-muted">{curador.username}</p>
               </td>
-              <td className="px-3 py-2.5 text-graphite">{curador.hubName}</td>
-              <td className="px-3 py-2.5 font-mono text-xs text-muted">
+              <td className="px-4 py-3 text-graphite">{curador.hubName}</td>
+              <td className="px-4 py-3 text-xs text-muted">
                 {new Date(curador.since).toLocaleDateString('pt-BR')}
               </td>
-              <td className="px-3 py-2.5 text-right">
+              <td className="px-4 py-3 text-right">
                 <button
                   type="button"
                   onClick={async () => {
@@ -371,12 +373,12 @@ function AbaDepartamentos() {
         <Tabela cabecalho={['Código', 'Nome no Protheus', 'Setor', '']}>
           {mapeamentos.map((mapeamento) => (
             <tr key={mapeamento.id} className="border-t border-hairline">
-              <td className="px-3 py-2.5 font-mono text-sm text-graphite">
+              <td className="px-4 py-3 text-sm font-semibold text-graphite">
                 {mapeamento.protheusDeptCode}
               </td>
-              <td className="px-3 py-2.5 text-muted">{mapeamento.protheusDeptName ?? '—'}</td>
-              <td className="px-3 py-2.5 text-graphite">{mapeamento.hub.name}</td>
-              <td className="px-3 py-2.5 text-right">
+              <td className="px-4 py-3 text-muted">{mapeamento.protheusDeptName ?? '—'}</td>
+              <td className="px-4 py-3 text-graphite">{mapeamento.hub.name}</td>
+              <td className="px-4 py-3 text-right">
                 <button
                   type="button"
                   onClick={async () => {
@@ -433,24 +435,24 @@ function AbaAuditoria() {
       <Tabela cabecalho={['Quando', 'Quem', 'O quê', 'Origem']}>
         {data.items.map((registro) => (
           <tr key={registro.id} className="border-t border-hairline">
-            <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-muted">
+            <td className="whitespace-nowrap px-4 py-3 text-xs text-muted">
               {new Date(registro.createdAt).toLocaleString('pt-BR')}
             </td>
-            <td className="px-3 py-2.5 text-graphite">{registro.actorName}</td>
-            <td className="px-3 py-2.5 text-graphite">
+            <td className="px-4 py-3 text-graphite">{registro.actorName}</td>
+            <td className="px-4 py-3 text-graphite">
               {ACOES[registro.action]} {ENTIDADES[registro.entity] ?? registro.entity}
               {registro.entityLabel && (
                 <span className="text-muted"> · {registro.entityLabel}</span>
               )}
             </td>
-            <td className="px-3 py-2.5 font-mono text-xs text-muted">{registro.ip ?? '—'}</td>
+            <td className="px-4 py-3 text-xs text-muted">{registro.ip ?? '—'}</td>
           </tr>
         ))}
       </Tabela>
 
       {totalDePaginas > 1 && (
         <div className="flex items-center justify-between">
-          <p className="plate-label text-muted">
+          <p className="eyebrow">
             Página {pagina} de {totalDePaginas}
           </p>
           <div className="flex gap-2">
@@ -475,11 +477,11 @@ function AbaAuditoria() {
 function Tabela({ cabecalho, children }) {
   return (
     <div className="card overflow-x-auto">
-      <table className="w-full min-w-[640px] text-left text-sm">
+      <table className="w-full min-w-[680px] text-left text-sm">
         <thead>
-          <tr className="bg-ground/60">
+          <tr className="bg-ground/70">
             {cabecalho.map((titulo, indice) => (
-              <th key={indice} scope="col" className="plate-label px-3 py-2 text-muted">
+              <th key={indice} scope="col" className="px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-muted">
                 {titulo}
               </th>
             ))}

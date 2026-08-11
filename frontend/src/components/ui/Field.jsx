@@ -1,17 +1,17 @@
 import { useId } from 'react';
 
 const CONTROLE =
-  'w-full rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-graphite placeholder:text-muted/60 transition-colors focus:border-tech focus:outline-none disabled:bg-ground';
+  'w-full rounded-control border border-hairline bg-surface px-3.5 py-2.5 text-sm text-graphite transition-colors placeholder:text-muted/60 focus:border-tech focus:outline-none focus:ring-4 focus:ring-tech/10 disabled:bg-ground';
 
 export function Field({ label, hint, error, children }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-graphite">{label}</span>
+      <span className="mb-1.5 block text-[13px] font-semibold text-graphite">{label}</span>
       {children}
       {error ? (
-        <span className="mt-1.5 block text-sm text-danger">{error}</span>
+        <span className="mt-1.5 block text-[13px] text-danger">{error}</span>
       ) : hint ? (
-        <span className="mt-1.5 block text-sm text-muted">{hint}</span>
+        <span className="mt-1.5 block text-[13px] text-muted">{hint}</span>
       ) : null}
     </label>
   );

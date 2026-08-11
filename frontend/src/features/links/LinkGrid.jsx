@@ -20,13 +20,21 @@ export function LinkGrid({ links, podeEditar, aoEditar, aoRemover, aoAlternarFav
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const grade = 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3';
+  // Colunas fluidas: os cards ocupam a largura disponível em qualquer tela, em
+  // vez de pararem em três colunas e deixarem sobra à direita nos monitores
+  // largos.
+  const grade =
+    'grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))]';
 
   if (!podeEditar || !aoReordenar) {
     return (
       <div className={grade}>
         {links.map((link, indice) => (
-          <div key={link.id} className="animate-rise" style={{ animationDelay: `${indice * 24}ms` }}>
+          <div
+            key={link.id}
+            className="animate-rise h-full"
+            style={{ animationDelay: `${indice * 35}ms` }}
+          >
             <LinkCard link={link} aoAlternarFavorito={aoAlternarFavorito} />
           </div>
         ))}

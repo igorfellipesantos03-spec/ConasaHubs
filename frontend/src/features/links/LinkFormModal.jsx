@@ -179,7 +179,7 @@ export function LinkFormModal({ aberto, aoFechar, aoSalvar, link, secoes = [], s
         </Field>
 
         <div className="rounded-lg border border-hairline bg-ground/60 p-3">
-          <p className="plate-label mb-2 text-muted">Prévia</p>
+          <p className="eyebrow mb-2">Prévia</p>
           <div className="flex items-center gap-3">
             <span
               className="flex h-9 w-9 items-center justify-center rounded-lg"
