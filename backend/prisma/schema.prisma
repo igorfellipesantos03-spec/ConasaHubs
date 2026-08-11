@@ -1,0 +1,216 @@
+// Modelo de dados do CentralHub.
+// Regra geral: o Protheus é a fonte da verdade da identidade; tudo que diz respeito
+// à organização dos links vive só aqui.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum LinkVisibility {
+  PUBLIC   // visível para toda a empresa
+  HUB_ONLY // visível apenas para quem pertence ao hub
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+/// Usuário corporativo, provisionado no primeiro login (JIT) a partir do Protheus.
+model User {
+  id               String   @id @default(uuid())
+  username         String   @unique
+  name             String
+  cpf              String?
+  email            String?
+  role             Role     @default(USER)
+
+  /// Hub do setor. Resolvido pelo departamento do Protheus, salvo quando hubOverride = true.
+  hubId            String?
+  hub              Hub?     @relation("UserHub", fields: [hubId], references: [id], onDelete: SetNull)
+  /// Quando true, o admin fixou o hub manualmente e o login não sobrescreve.
+  hubOverride      Boolean  @default(false)
+
+  protheusDeptCode String?
+  protheusDeptName String?
+  empresaId        String?
+  filialId         String?
+
+  active           Boolean  @default(true)
+  lastLoginAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  curatorships     HubCurator[] @relation("CuratorUser")
+  grantedCuratorships HubCurator[] @relation("CuratorGrantedBy")
+  favorites        Favorite[]
+  refreshTokens    RefreshToken[]
+  auditLogs        AuditLog[]
+  createdLinks     Link[]   @relation("LinkCreatedBy")
+
+  @@index([hubId])
+  @@map("users")
+}
+
+/// Um setor da empresa e sua página de links.
+model Hub {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String?
+  /// Nome do ícone da biblioteca lucide-react (ex.: "Cpu", "Users").
+  icon        String   @default("LayoutGrid")
+  /// Cor de destaque do card, em hexadecimal.
+  color       String   @default("#0F2C59")
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     User[]         @relation("UserHub")
+  curators    HubCurator[]
+  categories  LinkCategory[]
+  links       Link[]
+  deptMappings DeptMapping[]
+
+  @@map("hubs")
+}
+
+/// Tradução do departamento do Protheus (tabela SRA) para um hub do CentralHub.
+model DeptMapping {
+  id               String   @id @default(uuid())
+  protheusDeptCode String   @unique
+  protheusDeptName String?
+  hubId            String
+  hub              Hub      @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([hubId])
+  @@map("dept_mappings")
+}
+
+/// Permissão de edição do conteúdo de um hub específico.
+model HubCurator {
+  userId      String
+  hubId       String
+  grantedById String?
+  createdAt   DateTime @default(now())
+
+  user        User  @relation("CuratorUser", fields: [userId], references: [id], onDelete: Cascade)
+  hub         Hub   @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  grantedBy   User? @relation("CuratorGrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@id([userId, hubId])
+  @@index([hubId])
+  @@map("hub_curators")
+}
+
+/// Agrupamento de links dentro de um hub (ex.: "Sistemas", "Documentação").
+model LinkCategory {
+  id        String   @id @default(uuid())
+  hubId     String
+  hub       Hub      @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  name      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  links     Link[]
+
+  @@unique([hubId, name])
+  @@index([hubId])
+  @@map("link_categories")
+}
+
+model Link {
+  id          String         @id @default(uuid())
+  hubId       String
+  hub         Hub            @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    LinkCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  title       String
+  description String?
+  url         String
+  icon        String         @default("Link")
+  color       String         @default("#00A8CC")
+  order       Int            @default(0)
+  visibility  LinkVisibility @default(PUBLIC)
+  active      Boolean        @default(true)
+
+  createdById String?
+  createdBy   User?          @relation("LinkCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  favorites   Favorite[]
+
+  @@index([hubId, categoryId, order])
+  @@map("links")
+}
+
+model Favorite {
+  userId    String
+  linkId    String
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  link      Link @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@id([userId, linkId])
+  @@index([linkId])
+  @@map("favorites")
+}
+
+/// Trilha de auditoria de toda mutação administrativa ou de conteúdo.
+model AuditLog {
+  id        String      @id @default(uuid())
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Nome do usuário no momento da ação — preservado mesmo se o usuário sumir.
+  actorName String
+  action    AuditAction
+  entity    String
+  entityId  String
+  /// Rótulo legível do alvo (ex.: título do link) para a tela de auditoria.
+  entityLabel String?
+  before    Json?
+  after     Json?
+  ip        String?
+  createdAt DateTime    @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
+
+/// Refresh token opaco, guardado como hash. Rotacionado a cada uso.
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String
+  /// Agrupa a cadeia de rotações originada de um mesmo login.
+  familyId   String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}

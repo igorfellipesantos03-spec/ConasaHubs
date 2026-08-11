@@ -1,0 +1,103 @@
+@import 'tailwindcss';
+
+/* Fontes servidas pela própria aplicação: o servidor interno pode não ter
+   saída para a internet, então nada de CDN de fontes. */
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-sans/700.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+@theme {
+  /* Paleta institucional da Conasa. */
+  --color-ink: #0f2c59; /* azul institucional: cabeçalho, títulos, identidade */
+  --color-ink-700: #1b3f74;
+  --color-ink-300: #7d94b8;
+  /* "tech" e não "current": `bg-current` já existe no Tailwind (currentColor). */
+  --color-tech: #00a8cc; /* azul técnico: ações e links ativos */
+  --color-tech-600: #0090b0;
+  --color-tech-50: #e6f7fb;
+  --color-ground: #f4f6f9; /* fundo do sistema */
+  --color-surface: #ffffff; /* cards */
+  --color-graphite: #212529; /* texto principal */
+  --color-muted: #5a6472;
+  --color-hairline: #e1e7ef;
+  --color-danger: #b42318;
+  --color-success: #067647;
+
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --radius-card: 10px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ground);
+    color: var(--color-graphite);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Foco visível e consistente em tudo que recebe teclado. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-tech);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--color-tech);
+    color: #fff;
+  }
+}
+
+@layer components {
+  /* Assinatura do sistema: rótulo de placa técnica — mono, caixa-alta,
+     tracking largo. Usado só em metadados curtos (códigos, contagens). */
+  .plate-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-card);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Entrada escalonada da lista de links no primeiro carregamento. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: rise 0.32s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
