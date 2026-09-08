@@ -32,11 +32,12 @@ model User {
   id               String   @id @default(uuid())
   username         String   @unique
   name             String
-  cpf              String?
+  /// Identifica o funcionário unicamente: impede duas contas reivindicando o mesmo CPF.
+  cpf              String?  @unique
   email            String?
   role             Role     @default(USER)
 
-  /// Hub do setor. Resolvido pelo departamento do Protheus, salvo quando hubOverride = true.
+  /// Hub do setor. Resolvido no onboarding, salvo quando hubOverride = true.
   hubId            String?
   hub              Hub?     @relation("UserHub", fields: [hubId], references: [id], onDelete: SetNull)
   /// Quando true, o admin fixou o hub manualmente e o login não sobrescreve.
@@ -44,8 +45,15 @@ model User {
 
   protheusDeptCode String?
   protheusDeptName String?
+  roleCode         String?
+  roleDescription  String?
+  costCenterCode        String?
+  costCenterDescription String?
   empresaId        String?
   filialId         String?
+  /// Preenchido ao concluir o wizard de empresa/filial/CPF. Enquanto vazio, o
+  /// login protegido mostra o wizard em vez do conteúdo do app.
+  onboardingCompletedAt DateTime?
 
   active           Boolean  @default(true)
   lastLoginAt      DateTime?
@@ -58,6 +66,7 @@ model User {
   refreshTokens    RefreshToken[]
   auditLogs        AuditLog[]
   createdLinks     Link[]   @relation("LinkCreatedBy")
+  createdCategories LinkCategory[] @relation("CategoryCreatedBy")
 
   @@index([hubId])
   @@map("users")
@@ -73,6 +82,8 @@ model Hub {
   icon        String   @default("LayoutGrid")
   /// Cor de destaque do card, em hexadecimal.
   color       String   @default("#0F2C59")
+  /// Centro de custo que deu nome ao hub, quando ele nasceu do onboarding automático.
+  costCenterCode String?
   order       Int      @default(0)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -124,6 +135,11 @@ model LinkCategory {
   hub       Hub      @relation(fields: [hubId], references: [id], onDelete: Cascade)
   name      String
   order     Int      @default(0)
+
+  /// Quem criou a seção. Membros comuns só editam/excluem o que criaram; curadores e admin, qualquer uma.
+  createdById String?
+  createdBy   User?    @relation("CategoryCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

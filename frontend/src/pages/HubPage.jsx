@@ -101,7 +101,8 @@ export default function HubPage() {
   }
 
   const propriedadesDaGrade = {
-    podeEditar: hub.canEdit,
+    // Publicar é de quem é do setor; mexer no que já está lá, de quem publicou.
+    // Cada link traz o próprio `canEdit`, calculado pela API com essa regra.
     aoEditar: abrirEdicao,
     aoRemover: setLinkParaExcluir,
     aoAlternarFavorito: (link) =>
@@ -115,7 +116,7 @@ export default function HubPage() {
         hub={hub}
         quantidadeDeLinks={totalDeLinks}
         acoes={
-          hub.canEdit && (
+          hub.canContribute && (
             <>
               <Button variant="translucido" onClick={() => setSecaoAberta(true)}>
                 <FolderPlus className="h-[18px] w-[18px]" />
@@ -135,11 +136,13 @@ export default function HubPage() {
           icone={hub.icon}
           titulo="Nenhum link por aqui ainda"
           descricao={
-            hub.canEdit
+            hub.canContribute
               ? 'Comece adicionando os sistemas que a sua equipe usa todo dia.'
-              : 'Os curadores deste setor ainda não cadastraram links.'
+              : 'Este setor ainda não cadastrou links.'
           }
-          acao={hub.canEdit && <Button onClick={abrirNovoLink}>Adicionar o primeiro link</Button>}
+          acao={
+            hub.canContribute && <Button onClick={abrirNovoLink}>Adicionar o primeiro link</Button>
+          }
         />
       ) : (
         <div className="space-y-8">
@@ -148,13 +151,13 @@ export default function HubPage() {
           )}
 
           {hub.categories
-            .filter((secao) => secao.links.length > 0 || hub.canEdit)
+            .filter((secao) => secao.links.length > 0 || hub.canContribute)
             .map((secao) => (
               <section key={secao.id}>
                 <div className="group/secao mb-3.5 flex items-center gap-2.5">
                   <h2 className="text-[15px] font-bold text-graphite">{secao.name}</h2>
                   <span className="pill bg-ground text-muted">{secao.links.length}</span>
-                  {hub.canEdit && (
+                  {secao.canEdit && (
                     <button
                       type="button"
                       onClick={async () => {

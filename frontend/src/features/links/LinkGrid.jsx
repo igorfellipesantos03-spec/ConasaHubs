@@ -12,8 +12,12 @@ import { LinkCard } from './LinkCard';
 /**
  * Grade de links. Para curadores vira uma grade ordenável: o arraste atualiza a
  * ordem na hora e envia uma única requisição com a nova disposição.
+ *
+ * Os botões de editar e excluir são decididos por cada card, a partir do
+ * `canEdit` que a API manda em cada link — um membro do setor mexe no que
+ * publicou mesmo sem poder reordenar o mural.
  */
-export function LinkGrid({ links, podeEditar, aoEditar, aoRemover, aoAlternarFavorito, aoReordenar }) {
+export function LinkGrid({ links, aoEditar, aoRemover, aoAlternarFavorito, aoReordenar }) {
   const sensores = useSensors(
     // Um pequeno deslocamento antes de arrastar preserva o clique no link.
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -26,7 +30,7 @@ export function LinkGrid({ links, podeEditar, aoEditar, aoRemover, aoAlternarFav
   const grade =
     'grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))]';
 
-  if (!podeEditar || !aoReordenar) {
+  if (!aoReordenar) {
     return (
       <div className={grade}>
         {links.map((link, indice) => (
@@ -35,7 +39,12 @@ export function LinkGrid({ links, podeEditar, aoEditar, aoRemover, aoAlternarFav
             className="animate-rise h-full"
             style={{ animationDelay: `${indice * 35}ms` }}
           >
-            <LinkCard link={link} aoAlternarFavorito={aoAlternarFavorito} />
+            <LinkCard
+              link={link}
+              aoEditar={aoEditar}
+              aoRemover={aoRemover}
+              aoAlternarFavorito={aoAlternarFavorito}
+            />
           </div>
         ))}
       </div>
@@ -79,7 +88,6 @@ function CardOrdenavel({ link, ...rest }) {
   return (
     <LinkCard
       link={link}
-      podeEditar
       arrastavel
       referencia={setNodeRef}
       atributosDeArraste={attributes}

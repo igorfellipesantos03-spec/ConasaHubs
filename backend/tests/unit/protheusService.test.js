@@ -7,9 +7,8 @@ vi.mock('axios', () => ({
   default: { create: () => ({ post, get }) },
 }));
 
-const { autenticar, buscarFuncionarioDoUsuario } = await import(
-  '../../src/services/protheusService.js'
-);
+const { autenticar, buscarFuncionarioPorCpf, extrairDadosDoFuncionario, rotuloDoDepartamento } =
+  await import('../../src/services/protheusService.js');
 
 const httpError = (status) => Object.assign(new Error('falha'), { response: { status } });
 
@@ -65,52 +64,112 @@ describe('autenticar', () => {
   });
 });
 
-describe('buscarFuncionarioDoUsuario', () => {
-  it('busca por CPF quando o login é um CPF', async () => {
+describe('buscarFuncionarioPorCpf', () => {
+  it('filtra pelo CPF e descarta quem já foi desligado', async () => {
     get.mockResolvedValue({ data: { items: [{ name: 'FULANO', RA_CIC: '12345678900' }] } });
 
-    const funcionario = await buscarFuncionarioDoUsuario('token', '123.456.789-00');
-
-    expect(funcionario).toMatchObject({ name: 'FULANO' });
-    expect(get.mock.calls[0][1].params.filter).toBe("RA_CIC = '12345678900'");
-  });
-
-  it('busca pelo primeiro nome quando o login é nome.sobrenome', async () => {
-    get.mockResolvedValue({ data: [{ name: 'IGOR FELLIPE SANTOS' }] });
-
-    const funcionario = await buscarFuncionarioDoUsuario('token', 'igor.fellipe');
-
-    expect(funcionario).toMatchObject({ name: 'IGOR FELLIPE SANTOS' });
-    expect(get.mock.calls[0][1].params.filter).toBe("UPPER(RA_NOME) LIKE 'IGOR%'");
-  });
-
-  it('desempata homônimos usando todas as partes do login', async () => {
-    get.mockResolvedValue({
-      data: [{ name: 'IGOR SOUZA' }, { name: 'IGOR FELLIPE SANTOS' }],
+    const encontrados = await buscarFuncionarioPorCpf('token', '12345678900', {
+      companyId: '07',
+      branchId: '01',
     });
 
-    await expect(buscarFuncionarioDoUsuario('token', 'igor.fellipe')).resolves.toMatchObject({
-      name: 'IGOR FELLIPE SANTOS',
-    });
+    expect(encontrados).toMatchObject([{ name: 'FULANO' }]);
+    expect(get.mock.calls[0][1].params.filter).toBe(
+      "RA_CIC LIKE '12345678900%' AND RA_DEMISSA = ''",
+    );
   });
 
-  it('devolve null quando os homônimos são indistinguíveis', async () => {
-    get.mockResolvedValue({ data: [{ name: 'IGOR SOUZA' }, { name: 'IGOR PEREIRA' }] });
-
-    await expect(buscarFuncionarioDoUsuario('token', 'igor.fellipe')).resolves.toBeNull();
-  });
-
-  it('devolve null — sem lançar — quando a consulta falha, para não derrubar o login', async () => {
-    get.mockRejectedValue(httpError(500));
-
-    await expect(buscarFuncionarioDoUsuario('token', 'igor.fellipe')).resolves.toBeNull();
-  });
-
-  it('não deixa o login injetar conteúdo na expressão de filtro', async () => {
+  it('consulta a empresa e a filial que o usuário escolheu', async () => {
     get.mockResolvedValue({ data: [] });
 
-    await buscarFuncionarioDoUsuario('token', "ig'or--.fellipe");
+    await buscarFuncionarioPorCpf('token', '12345678900', { companyId: '43', branchId: '0007' });
 
-    expect(get.mock.calls[0][1].params.filter).toBe("UPPER(RA_NOME) LIKE 'IGOR%'");
+    const [, config] = get.mock.calls[0];
+    expect(config.headers.tenantId).toBe('43,0007');
+    expect(config.params).toMatchObject({ companyId: '43', branchId: '0007' });
+  });
+
+  it('cai na empresa e filial padrão quando nenhuma é informada', async () => {
+    get.mockResolvedValue({ data: [] });
+
+    await buscarFuncionarioPorCpf('token', '12345678900');
+
+    expect(get.mock.calls[0][1].headers.tenantId).toBe('07,01');
+  });
+
+  it('pede o cargo junto dos demais campos cadastrais', async () => {
+    get.mockResolvedValue({ data: [] });
+
+    await buscarFuncionarioPorCpf('token', '12345678900');
+
+    expect(get.mock.calls[0][1].params.fields).toContain('roleCode,roleDescription');
+  });
+
+  it('não deixa o CPF digitado injetar conteúdo na expressão de filtro', async () => {
+    get.mockResolvedValue({ data: [] });
+
+    await buscarFuncionarioPorCpf('token', "123.456' OR '1'='1");
+
+    expect(get.mock.calls[0][1].params.filter).toBe("RA_CIC LIKE '12345611%' AND RA_DEMISSA = ''");
+  });
+
+  it('devolve null — sem lançar — quando a consulta falha', async () => {
+    get.mockRejectedValue(httpError(500));
+
+    await expect(buscarFuncionarioPorCpf('token', '12345678900')).resolves.toBeNull();
+  });
+});
+
+describe('extrairDadosDoFuncionario', () => {
+  it('limpa o espaçamento que a SRA devolve nos campos de código', () => {
+    const dados = extrairDadosDoFuncionario({
+      name: 'IGOR FELIPE DOS SANTOS GATO',
+      cpf: '123.456.789-10',
+      departamentCode: '0001400',
+      departmentDescription: 'TI - DIORGNY',
+      costCenterCode: '07.01.08.07.001     ',
+      costCenterDescription: 'TECNOLOGIA DA INFORMACAO',
+      roleCode: '33098',
+      roleDescription: 'ASSISTENTE TECNICO - TI',
+    });
+
+    expect(dados).toEqual({
+      name: 'IGOR FELIPE DOS SANTOS GATO',
+      cpf: '12345678910',
+      protheusDeptCode: '0001400',
+      protheusDeptName: 'TI - DIORGNY',
+      costCenterCode: '07.01.08.07.001',
+      costCenterDescription: 'TECNOLOGIA DA INFORMACAO',
+      roleCode: '33098',
+      roleDescription: 'ASSISTENTE TECNICO - TI',
+    });
+  });
+
+  it('aceita RA_CIC quando o registro não traz o campo cpf', () => {
+    expect(extrairDadosDoFuncionario({ RA_CIC: '98765432100' })).toMatchObject({
+      cpf: '98765432100',
+    });
+  });
+
+  it('devolve null no lugar de campo vazio, para não gravar string em branco', () => {
+    expect(extrairDadosDoFuncionario({ name: '   ', roleDescription: '' })).toMatchObject({
+      name: null,
+      roleDescription: null,
+      cpf: null,
+    });
+  });
+});
+
+describe('rotuloDoDepartamento', () => {
+  it('descarta o nome do gestor que vem depois do hífen', () => {
+    expect(rotuloDoDepartamento('TI - DIORGNY')).toBe('TI');
+  });
+
+  it('mantém o nome inteiro quando não há hífen', () => {
+    expect(rotuloDoDepartamento('RECURSOS HUMANOS')).toBe('RECURSOS HUMANOS');
+  });
+
+  it('devolve null para departamento ausente', () => {
+    expect(rotuloDoDepartamento(null)).toBeNull();
   });
 });

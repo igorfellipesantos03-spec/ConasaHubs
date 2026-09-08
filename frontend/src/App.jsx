@@ -2,6 +2,7 @@ import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { AppShell } from './components/layout/AppShell';
 import { CarregandoPagina } from './components/ui/Feedback';
+import { OnboardingWizard } from './features/onboarding/OnboardingWizard';
 import Login from './pages/Login';
 import Setores from './pages/Setores';
 import HubPage from './pages/HubPage';
@@ -26,11 +27,15 @@ export default function App() {
 }
 
 function LayoutProtegido() {
-  const { user, carregando } = useAuth();
+  const { user, carregando, precisaCadastro } = useAuth();
   const location = useLocation();
 
   if (carregando) return <CarregandoPagina rotulo="Carregando o CentralHub" />;
   if (!user) return <Navigate to="/login" replace state={{ de: location.pathname }} />;
+
+  // O portal se organiza por setor, e é o cadastro que diz qual é o da pessoa:
+  // antes disso não há o que mostrar por baixo.
+  if (precisaCadastro) return <OnboardingWizard />;
 
   return (
     <AppShell>

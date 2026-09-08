@@ -11,6 +11,7 @@ import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
 import healthRoutes from './routes/healthRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import onboardingRoutes from './routes/onboardingRoutes.js';
 import hubRoutes from './routes/hubRoutes.js';
 import linkRoutes from './routes/linkRoutes.js';
 import favoriteRoutes from './routes/favoriteRoutes.js';
@@ -39,6 +40,7 @@ export function createApp() {
 
   app.use('/api', originGuard);
   app.use('/api/auth', authRoutes);
+  app.use('/api/onboarding', onboardingRoutes);
   app.use('/api/hubs', hubRoutes);
   app.use('/api/hubs', linkRoutes);
   app.use('/api/favorites', favoriteRoutes);

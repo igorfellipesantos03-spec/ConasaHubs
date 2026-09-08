@@ -8,7 +8,6 @@ import { Icon } from '../../components/ui/Icon';
  */
 export function LinkCard({
   link,
-  podeEditar,
   aoEditar,
   aoRemover,
   aoAlternarFavorito,
@@ -20,6 +19,10 @@ export function LinkCard({
 }) {
   const revelavel =
     'transition-opacity duration-200 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100';
+
+  // Quem pode mexer neste link vem da API, link a link: o autor e os curadores
+  // do setor. A tela só deixa de oferecer o que seria recusado no envio.
+  const podeEditar = Boolean(link.canEdit && aoEditar);
 
   return (
     <div
@@ -108,7 +111,7 @@ export function LinkCard({
         )}
       </div>
 
-      {podeEditar && arrastavel && (
+      {arrastavel && (
         <button
           type="button"
           className={`absolute bottom-2 right-2 hidden cursor-grab rounded-lg p-1.5 text-ink-200 hover:bg-ground hover:text-muted active:cursor-grabbing sm:block ${revelavel}`}

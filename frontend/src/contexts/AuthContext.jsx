@@ -33,17 +33,24 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  /** O cadastro inicial devolve o usuário já completo — não custa outra ida à API. */
+  const atualizarUsuario = useCallback((atualizado) => setUser(atualizado), []);
+
   const value = useMemo(
     () => ({
       user,
       carregando,
       login,
       logout,
+      atualizarUsuario,
       ehAdmin: user?.role === 'ADMIN',
+      // Enquanto o cadastro não foi concluído não se sabe de que setor a pessoa
+      // é — e o portal inteiro é organizado por setor.
+      precisaCadastro: Boolean(user) && !user.onboardingCompleted,
       podeEditar: (hubId) =>
         user?.role === 'ADMIN' || (user?.curatorOf ?? []).includes(hubId),
     }),
-    [user, carregando, login, logout],
+    [user, carregando, login, logout, atualizarUsuario],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

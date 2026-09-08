@@ -1,5 +1,10 @@
 import * as hubService from '../services/hubService.js';
-import { hubSchema, updateHubSchema, categorySchema } from '../validators/contentValidators.js';
+import {
+  hubSchema,
+  updateHubSchema,
+  curatorHubSchema,
+  categorySchema,
+} from '../validators/contentValidators.js';
 
 export async function list(req, res) {
   res.json({ hubs: await hubService.listHubs(req.user) });
@@ -20,7 +25,10 @@ export async function create(req, res) {
 }
 
 export async function update(req, res) {
-  const data = updateHubSchema.parse(req.body);
+  // O curador reapresenta o setor; o admin também mexe na identidade dele.
+  const schema = req.user.role === 'ADMIN' ? updateHubSchema : curatorHubSchema;
+  const data = schema.parse(req.body);
+
   const hub = await hubService.updateHub(req.user, req.params.hubId, data, req.ip);
   res.json({ hub });
 }

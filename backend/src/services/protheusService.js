@@ -19,6 +19,8 @@ const EMPLOYEE_FIELDS = [
   'departmentDescription',
   'costCenterCode',
   'costCenterDescription',
+  'roleCode',
+  'roleDescription',
   'demissionDate',
 ].join(',');
 
@@ -68,11 +70,19 @@ export async function autenticar(username, password) {
  *
  * @param {string} accessToken token do próprio usuário
  * @param {string} filter expressão AdvPL/SQL, ex.: `RA_CIC = '12345678900'`
+ * @param {{pageSize?: number, companyId?: string, branchId?: string}} [options]
+ *   `companyId`/`branchId` default para a empresa/filial fixas do `.env`, mas o
+ *   onboarding passa a empresa/filial que a pessoa escolheu no wizard.
  */
-export async function consultarFuncionarios(accessToken, filter, { pageSize = 20 } = {}) {
-  const companyId = env.PROTHEUS_DEFAULT_COMPANY;
-  const branchId = env.PROTHEUS_DEFAULT_BRANCH;
-
+export async function consultarFuncionarios(
+  accessToken,
+  filter,
+  {
+    pageSize = 20,
+    companyId = env.PROTHEUS_DEFAULT_COMPANY,
+    branchId = env.PROTHEUS_DEFAULT_BRANCH,
+  } = {},
+) {
   try {
     const { data } = await http.get('/rest/rh/v1/employeedatacontent/', {
       headers: {
@@ -101,76 +111,51 @@ export async function consultarFuncionarios(accessToken, filter, { pageSize = 20
 }
 
 /**
- * Tenta localizar o registro do usuário logado na SRA.
+ * Localiza o funcionário pelo CPF, dentro da empresa/filial informadas.
  *
- * O Protheus não expõe uma rota "quem sou eu", e o `username` do OAuth2 não é
- * necessariamente igual à chave do funcionário. Tentamos as estratégias abaixo
- * em ordem; se nenhuma funcionar, devolvemos `null` e o login segue sem o
- * departamento — o admin atribui o setor manualmente na tela de administração.
+ * O CPF vem do próprio usuário (wizard de onboarding) ou do cadastro já
+ * confirmado antes — nunca de um palpite sobre o `username`, como era feito
+ * antes. `RA_DEMISSA = ''` descarta quem já foi desligado.
  *
- * IMPORTANTE: confirmar com a equipe do Protheus qual campo casa com o login e
- * simplificar esta função para a estratégia correta.
+ * @param {string} cpf apenas dígitos
  */
-export async function buscarFuncionarioDoUsuario(accessToken, username) {
-  const somenteDigitos = username.replace(/\D/g, '');
+export function buscarFuncionarioPorCpf(accessToken, cpf, { companyId, branchId } = {}) {
+  const somenteDigitos = String(cpf).replace(/\D/g, '');
 
-  // 1. O login é o próprio CPF.
-  if (somenteDigitos.length === 11) {
-    const porCpf = await consultarFuncionarios(
-      accessToken,
-      `RA_CIC = '${somenteDigitos}'`,
-      { pageSize: 1 },
-    );
-    if (porCpf?.length) return porCpf[0];
-  }
-
-  // 2. O login segue o padrão `nome.sobrenome`.
-  const partes = username
-    .split(/[._-]+/)
-    .map((parte) => parte.trim())
-    .filter(Boolean);
-
-  if (partes.length > 0) {
-    const primeiroNome = sanitizarParaFiltro(partes[0]).toUpperCase();
-    if (primeiroNome.length >= 3) {
-      const candidatos = await consultarFuncionarios(
-        accessToken,
-        `UPPER(RA_NOME) LIKE '${primeiroNome}%'`,
-        { pageSize: 50 },
-      );
-      const escolhido = escolherCandidato(candidatos, partes);
-      if (escolhido) return escolhido;
-    }
-  }
-
-  return null;
+  return consultarFuncionarios(
+    accessToken,
+    `RA_CIC LIKE '${somenteDigitos}%' AND RA_DEMISSA = ''`,
+    { pageSize: 5, companyId, branchId },
+  );
 }
 
-/** Impede que o valor quebre ou injete conteúdo na expressão de filtro. */
-function sanitizarParaFiltro(valor) {
-  return valor.normalize('NFD').replace(/[^a-zA-Z0-9]/g, '');
+/**
+ * Traduz o registro cru da SRA para os campos do nosso `User`. Concentra aqui o
+ * conhecimento sobre os nomes de campo do Protheus, que não são óbvios
+ * (`departamentCode` sem o "n", `RA_CIC` como alternativa a `cpf`).
+ */
+export function extrairDadosDoFuncionario(employee) {
+  const texto = (valor) => (typeof valor === 'string' ? valor.trim() : '') || null;
+
+  return {
+    name: texto(employee.name),
+    cpf: String(employee.cpf ?? employee.RA_CIC ?? '').replace(/\D/g, '') || null,
+    protheusDeptCode: texto(employee.departamentCode),
+    protheusDeptName: texto(employee.departmentDescription),
+    roleCode: texto(employee.roleCode),
+    roleDescription: texto(employee.roleDescription),
+    costCenterCode: texto(employee.costCenterCode),
+    costCenterDescription: texto(employee.costCenterDescription),
+  };
 }
 
-/** Entre os homônimos, aceita apenas quem casa com todas as partes do login. */
-function escolherCandidato(candidatos, partes) {
-  if (!candidatos?.length) return null;
-  if (candidatos.length === 1) return candidatos[0];
-
-  const termos = partes.map((parte) => normalizar(parte)).filter((parte) => parte.length >= 3);
-
-  const exatos = candidatos.filter((funcionario) => {
-    const nome = normalizar(funcionario.name ?? '');
-    return termos.every((termo) => nome.includes(termo));
-  });
-
-  return exatos.length === 1 ? exatos[0] : null;
-}
-
-function normalizar(valor) {
-  return valor
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+/**
+ * "TI - DIORGNY" → "TI". O que vem depois do hífen identifica o gestor da
+ * equipe, não o setor.
+ */
+export function rotuloDoDepartamento(nome) {
+  if (!nome) return null;
+  return nome.split(' - ')[0].trim() || null;
 }
 
 /** A API do Protheus varia o envelope da resposta conforme a versão. */

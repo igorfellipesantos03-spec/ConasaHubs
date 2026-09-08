@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { recordAudit } from './auditService.js';
+import { assertPodeAlterar } from './hubService.js';
 
 /** Garante que a categoria informada pertence mesmo ao hub sendo editado. */
 async function assertCategoryBelongsToHub(tx, categoryId, hubId) {
@@ -48,6 +49,8 @@ export async function updateLink(actor, hub, linkId, data, ip) {
     const before = await tx.link.findFirst({ where: { id: linkId, hubId: hub.id } });
     if (!before) throw notFound('Link não encontrado.');
 
+    await assertPodeAlterar(tx, actor, hub.id, before, 'este link');
+
     if (data.categoryId !== undefined) {
       await assertCategoryBelongsToHub(tx, data.categoryId, hub.id);
     }
@@ -79,6 +82,8 @@ export async function deleteLink(actor, hub, linkId, ip) {
   return prisma.$transaction(async (tx) => {
     const before = await tx.link.findFirst({ where: { id: linkId, hubId: hub.id } });
     if (!before) throw notFound('Link não encontrado.');
+
+    await assertPodeAlterar(tx, actor, hub.id, before, 'este link');
 
     await tx.link.delete({ where: { id: linkId } });
 

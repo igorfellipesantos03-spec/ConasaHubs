@@ -7,33 +7,52 @@ vi.mock('../../src/lib/prisma.js', () => ({ prisma }));
 
 const protheus = {
   autenticar: vi.fn(),
-  buscarFuncionarioDoUsuario: vi.fn(),
+  buscarFuncionarioPorCpf: vi.fn(),
+  extrairDadosDoFuncionario: vi.fn(),
+  rotuloDoDepartamento: vi.fn(),
 };
 vi.mock('../../src/services/protheusService.js', () => protheus);
 
 const { createApp } = await import('../../src/app.js');
 const { unauthorized, badGateway, forbidden } = await import('../../src/lib/errors.js');
+const sessionStore = await import('../../src/lib/sessionStore.js');
 
 const app = createApp();
 
 const funcionario = {
   name: 'IGOR FELLIPE SANTOS',
   cpf: '12345678900',
-  departamentCode: '001',
-  departmentDescription: 'TECNOLOGIA DA INFORMACAO',
-  companyKey: '07',
-  branch: '01',
+  departamentCode: '0001400',
+  departmentDescription: 'TI - DIORGNY',
+  costCenterDescription: 'TECNOLOGIA DA INFORMACAO',
+  roleDescription: 'ASSISTENTE TECNICO - TI',
 };
 
-const usuarioSalvo = {
+/** Quem ainda não passou pelo wizard: sem setor, sem cadastro do Protheus. */
+const usuarioNovo = {
   id: '11111111-1111-1111-1111-111111111111',
   username: 'igor.fellipe',
-  name: 'IGOR FELLIPE SANTOS',
+  name: 'igor.fellipe',
   role: 'USER',
   active: true,
+  hubId: null,
+  hub: null,
+  cpf: null,
+  onboardingCompletedAt: null,
+  curatorships: [],
+};
+
+const usuarioCadastrado = {
+  ...usuarioNovo,
+  name: 'IGOR FELLIPE SANTOS',
+  cpf: '12345678900',
+  empresaId: '07',
+  filialId: '01',
   hubId: 'hub-ti',
   hub: { id: 'hub-ti', slug: 'ti', name: 'Tecnologia da Informação' },
-  protheusDeptName: 'TECNOLOGIA DA INFORMACAO',
+  protheusDeptName: 'TI - DIORGNY',
+  roleDescription: 'ASSISTENTE TECNICO - TI',
+  onboardingCompletedAt: new Date('2026-08-01T12:00:00Z'),
   curatorships: [{ hubId: 'hub-ti' }],
 };
 
@@ -42,31 +61,38 @@ function cookiesFrom(response) {
   return Object.fromEntries(raw.map((cookie) => [cookie.split('=')[0], cookie]));
 }
 
+const login = (body = { username: 'igor.fellipe', password: 'senha' }) =>
+  request(app).post('/api/auth/login').send(body);
+
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionStore.del(usuarioNovo.id);
+
   protheus.autenticar.mockResolvedValue({ accessToken: 'protheus-token', expiresIn: 3600 });
-  protheus.buscarFuncionarioDoUsuario.mockResolvedValue(funcionario);
-  prisma.user.findUnique.mockResolvedValue(null);
-  prisma.deptMapping.findUnique.mockResolvedValue({ hubId: 'hub-ti' });
-  prisma.user.upsert.mockResolvedValue(usuarioSalvo);
-  prisma.refreshToken.create.mockImplementation(async ({ data }) => ({
-    id: 'refresh-1',
-    ...data,
-  }));
+  protheus.buscarFuncionarioPorCpf.mockResolvedValue([funcionario]);
+  protheus.rotuloDoDepartamento.mockImplementation((nome) => nome?.split(' - ')[0] ?? null);
+  protheus.extrairDadosDoFuncionario.mockReturnValue({
+    name: 'IGOR FELLIPE SANTOS',
+    cpf: '12345678900',
+    protheusDeptCode: '0001400',
+    protheusDeptName: 'TI - DIORGNY',
+    roleCode: '33098',
+    roleDescription: 'ASSISTENTE TECNICO - TI',
+    costCenterCode: '07.01.08.07.001',
+    costCenterDescription: 'TECNOLOGIA DA INFORMACAO',
+  });
+
+  prisma.user.upsert.mockResolvedValue(usuarioNovo);
+  prisma.user.update.mockResolvedValue(usuarioCadastrado);
+  prisma.refreshToken.create.mockImplementation(async ({ data }) => ({ id: 'refresh-1', ...data }));
 });
 
 describe('POST /api/auth/login', () => {
   it('autentica, provisiona o usuário e entrega os dois cookies de sessão', async () => {
-    const response = await request(app)
-      .post('/api/auth/login')
-      .send({ username: 'Igor.Fellipe', password: 'senha' });
+    const response = await login({ username: 'Igor.Fellipe', password: 'senha' });
 
     expect(response.status).toBe(200);
-    expect(response.body.user).toMatchObject({
-      username: 'igor.fellipe',
-      hubSlug: 'ti',
-      curatorOf: ['hub-ti'],
-    });
+    expect(response.body.user).toMatchObject({ username: 'igor.fellipe' });
 
     const cookies = cookiesFrom(response);
     expect(cookies.access_token).toContain('HttpOnly');
@@ -77,17 +103,73 @@ describe('POST /api/auth/login', () => {
   });
 
   it('normaliza o username para minúsculas ao provisionar', async () => {
-    await request(app).post('/api/auth/login').send({ username: '  Igor.Fellipe ', password: 'x' });
+    await login({ username: '  Igor.Fellipe ', password: 'x' });
 
     expect(prisma.user.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ where: { username: 'igor.fellipe' } }),
     );
   });
 
+  it('entra sem setor no primeiro acesso: quem é a pessoa se resolve no onboarding', async () => {
+    const response = await login();
+
+    expect(response.status).toBe(200);
+    expect(response.body.user).toMatchObject({ hubId: null, onboardingCompleted: false });
+    expect(protheus.buscarFuncionarioPorCpf).not.toHaveBeenCalled();
+  });
+
+  it('retém o token do Protheus para o onboarding usar em seguida', async () => {
+    await login();
+
+    expect(sessionStore.get(usuarioNovo.id)).toBe('protheus-token');
+  });
+
+  it('atualiza o cadastro de quem já concluiu o onboarding, sem retomar o token', async () => {
+    prisma.user.upsert.mockResolvedValue(usuarioCadastrado);
+
+    const response = await login();
+
+    expect(response.status).toBe(200);
+    expect(protheus.buscarFuncionarioPorCpf).toHaveBeenCalledWith(
+      'protheus-token',
+      '12345678900',
+      { companyId: '07', branchId: '01' },
+    );
+    expect(sessionStore.get(usuarioCadastrado.id)).toBeNull();
+  });
+
+  it('não mexe no setor de quem já está cadastrado — trocar de hub é decisão de admin', async () => {
+    prisma.user.upsert.mockResolvedValue(usuarioCadastrado);
+
+    await login();
+
+    const [{ data }] = prisma.user.update.mock.calls[0];
+    expect(data).not.toHaveProperty('hubId');
+    expect(data).not.toHaveProperty('cpf');
+    expect(data).toMatchObject({ name: 'IGOR FELLIPE SANTOS', protheusDeptCode: '0001400' });
+  });
+
+  it('mantém o cadastro anterior quando o Protheus não acha mais o funcionário', async () => {
+    prisma.user.upsert.mockResolvedValue(usuarioCadastrado);
+    protheus.buscarFuncionarioPorCpf.mockResolvedValue([]);
+
+    const response = await login();
+
+    expect(response.status).toBe(200);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('encurta o departamento para o rótulo do setor', async () => {
+    prisma.user.upsert.mockResolvedValue(usuarioCadastrado);
+
+    const response = await login();
+
+    expect(response.body.user.department).toBe('TI');
+    expect(response.body.user.cargo).toBe('ASSISTENTE TECNICO - TI');
+  });
+
   it('nunca devolve o token do Protheus ao cliente', async () => {
-    const response = await request(app)
-      .post('/api/auth/login')
-      .send({ username: 'igor.fellipe', password: 'senha' });
+    const response = await login();
 
     expect(JSON.stringify(response.body)).not.toContain('protheus-token');
     expect(response.headers['set-cookie'].join()).not.toContain('protheus-token');
@@ -98,9 +180,7 @@ describe('POST /api/auth/login', () => {
       unauthorized('Usuário ou senha incorretos.', { code: 'INVALID_CREDENTIALS' }),
     );
 
-    const response = await request(app)
-      .post('/api/auth/login')
-      .send({ username: 'igor.fellipe', password: 'errada' });
+    const response = await login({ username: 'igor.fellipe', password: 'errada' });
 
     expect(response.status).toBe(401);
     expect(response.body.message).toBe('Usuário ou senha incorretos.');
@@ -110,46 +190,21 @@ describe('POST /api/auth/login', () => {
   it('devolve 502 quando o Protheus está indisponível', async () => {
     protheus.autenticar.mockRejectedValue(badGateway('O Protheus está indisponível no momento.'));
 
-    const response = await request(app)
-      .post('/api/auth/login')
-      .send({ username: 'igor.fellipe', password: 'senha' });
-
-    expect(response.status).toBe(502);
-  });
-
-  it('entra sem setor quando o funcionário não é encontrado na SRA', async () => {
-    protheus.buscarFuncionarioDoUsuario.mockResolvedValue(null);
-    prisma.user.upsert.mockResolvedValue({ ...usuarioSalvo, hubId: null, hub: null });
-
-    const response = await request(app)
-      .post('/api/auth/login')
-      .send({ username: 'igor.fellipe', password: 'senha' });
-
-    expect(response.status).toBe(200);
-    expect(response.body.user.hubId).toBeNull();
-  });
-
-  it('respeita o setor fixado pelo admin (hubOverride) em vez do departamento do Protheus', async () => {
-    prisma.user.findUnique.mockResolvedValue({ hubOverride: true, hubId: 'hub-escolhido' });
-
-    await request(app).post('/api/auth/login').send({ username: 'igor.fellipe', password: 'x' });
-
-    expect(prisma.deptMapping.findUnique).not.toHaveBeenCalled();
-    expect(prisma.user.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        update: expect.objectContaining({ hubId: 'hub-escolhido' }),
-      }),
-    );
+    expect((await login()).status).toBe(502);
   });
 
   it('bloqueia usuário desativado no CentralHub', async () => {
-    prisma.user.upsert.mockResolvedValue({ ...usuarioSalvo, active: false });
+    prisma.user.upsert.mockResolvedValue({ ...usuarioNovo, active: false });
 
-    const response = await request(app)
-      .post('/api/auth/login')
-      .send({ username: 'igor.fellipe', password: 'senha' });
+    expect((await login()).status).toBe(403);
+  });
 
-    expect(response.status).toBe(403);
+  it('não retém o token do Protheus de um usuário desativado', async () => {
+    prisma.user.upsert.mockResolvedValue({ ...usuarioNovo, active: false });
+
+    await login();
+
+    expect(sessionStore.get(usuarioNovo.id)).toBeNull();
   });
 
   it('rejeita payload sem senha antes de falar com o Protheus', async () => {
@@ -161,21 +216,13 @@ describe('POST /api/auth/login', () => {
 });
 
 describe('sessão', () => {
-  async function login() {
-    const response = await request(app)
-      .post('/api/auth/login')
-      .send({ username: 'igor.fellipe', password: 'senha' });
-    return response.headers['set-cookie'];
-  }
-
   it('GET /api/auth/me exige cookie de sessão', async () => {
-    const response = await request(app).get('/api/auth/me');
-    expect(response.status).toBe(401);
+    expect((await request(app).get('/api/auth/me')).status).toBe(401);
   });
 
   it('GET /api/auth/me devolve o perfil com o cookie válido', async () => {
-    const cookies = await login();
-    prisma.user.findUnique.mockResolvedValue(usuarioSalvo);
+    const cookies = (await login()).headers['set-cookie'];
+    prisma.user.findUnique.mockResolvedValue(usuarioCadastrado);
 
     const response = await request(app).get('/api/auth/me').set('Cookie', cookies);
 

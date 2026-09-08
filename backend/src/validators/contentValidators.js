@@ -80,3 +80,13 @@ export const hubSchema = z.object({
 export const updateHubSchema = hubSchema.partial().extend({
   active: z.boolean().optional(),
 });
+
+/**
+ * O que um curador pode mudar no próprio setor: como ele se apresenta.
+ * `slug` (endereço), `order` (posição na lista) e `active` continuam com o
+ * admin — mexem em como o setor aparece para a empresa inteira.
+ */
+export const curatorHubSchema = hubSchema
+  .pick({ name: true, description: true, icon: true, color: true })
+  .partial()
+  .strict('Só o nome, a descrição, o ícone e a cor podem ser alterados por curadores.');

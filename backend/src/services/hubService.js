@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js';
-import { notFound } from '../lib/errors.js';
+import { forbidden, notFound } from '../lib/errors.js';
 import { recordAudit } from './auditService.js';
 
 /**
@@ -12,6 +12,29 @@ export function canSeeRestricted(user, hubId) {
     user.hubId === hubId ||
     (user.curatorOf ?? []).includes(hubId)
   );
+}
+
+/**
+ * Dentro de um setor, cada um responde pelo que publicou: o autor edita e
+ * apaga o próprio conteúdo, e o curador (ou o admin) responde por tudo.
+ *
+ * A curadoria é relida do banco em vez de vir do JWT, pelo mesmo motivo do
+ * `requireHubCurator`: revogar uma permissão precisa valer na hora.
+ *
+ * @param {string} item rótulo para a mensagem de erro, ex.: 'este link'
+ */
+export async function assertPodeAlterar(tx, actor, hubId, registro, item) {
+  if (actor.role === 'ADMIN') return;
+  if (registro.createdById && registro.createdById === actor.id) return;
+
+  const curadoria = await tx.hubCurator.findUnique({
+    where: { userId_hubId: { userId: actor.id, hubId } },
+    select: { userId: true },
+  });
+
+  if (!curadoria) {
+    throw forbidden(`Só quem criou ${item} ou um curador do setor pode alterá-lo.`);
+  }
 }
 
 /** Lista os setores para a home, com a contagem de links que o usuário enxerga. */
@@ -32,8 +55,19 @@ export async function listHubs(user) {
     ).length,
     curatorCount: _count.curators,
     isMine: user.hubId === hub.id,
-    canEdit: user.role === 'ADMIN' || (user.curatorOf ?? []).includes(hub.id),
+    canEdit: ehCurador(user, hub.id),
+    canContribute: podeContribuir(user, hub.id),
   }));
+}
+
+/** Curadoria e administração: responde pelo setor inteiro. */
+function ehCurador(user, hubId) {
+  return user.role === 'ADMIN' || (user.curatorOf ?? []).includes(hubId);
+}
+
+/** Faz parte do setor: pode publicar nele, ainda que não o administre. */
+function podeContribuir(user, hubId) {
+  return ehCurador(user, hubId) || user.hubId === hubId;
 }
 
 /** Detalhe do setor: categorias com seus links, mais os links sem categoria. */
@@ -61,7 +95,17 @@ export async function getHubBySlug(user, slug) {
   });
   const favoriteIds = new Set(favorites.map((item) => item.linkId));
 
-  const decorate = (link) => ({ ...link, isFavorite: favoriteIds.has(link.id) });
+  // Cada item diz se este usuário pode mexer nele: o curador mexe em tudo, o
+  // membro comum só no que publicou. É a mesma regra que os services aplicam na
+  // escrita — aqui ela existe para a tela não oferecer o que seria recusado.
+  const curador = ehCurador(user, hub.id);
+  const alteravel = (registro) => curador || registro.createdById === user.id;
+
+  const decorate = (link) => ({
+    ...link,
+    isFavorite: favoriteIds.has(link.id),
+    canEdit: alteravel(link),
+  });
 
   return {
     id: hub.id,
@@ -70,9 +114,11 @@ export async function getHubBySlug(user, slug) {
     description: hub.description,
     icon: hub.icon,
     color: hub.color,
-    canEdit: user.role === 'ADMIN' || (user.curatorOf ?? []).includes(hub.id),
+    canEdit: curador,
+    canContribute: podeContribuir(user, hub.id),
     categories: hub.categories.map((category) => ({
       ...category,
+      canEdit: alteravel(category),
       links: links.filter((link) => link.categoryId === category.id).map(decorate),
     })),
     uncategorizedLinks: links.filter((link) => !link.categoryId).map(decorate),
@@ -145,7 +191,7 @@ export async function createCategory(actor, hub, data, ip) {
       (await tx.linkCategory.count({ where: { hubId: hub.id } })) + 1;
 
     const category = await tx.linkCategory.create({
-      data: { hubId: hub.id, name: data.name, order },
+      data: { hubId: hub.id, name: data.name, order, createdById: actor.id },
     });
 
     await recordAudit(tx, {
@@ -167,6 +213,8 @@ export async function updateCategory(actor, hub, categoryId, data, ip) {
       where: { id: categoryId, hubId: hub.id },
     });
     if (!before) throw notFound('Seção não encontrada.');
+
+    await assertPodeAlterar(tx, actor, hub.id, before, 'esta seção');
 
     const category = await tx.linkCategory.update({ where: { id: categoryId }, data });
     await recordAudit(tx, {
@@ -190,6 +238,8 @@ export async function deleteCategory(actor, hub, categoryId, ip) {
       where: { id: categoryId, hubId: hub.id },
     });
     if (!before) throw notFound('Seção não encontrada.');
+
+    await assertPodeAlterar(tx, actor, hub.id, before, 'esta seção');
 
     await tx.linkCategory.delete({ where: { id: categoryId } });
     await recordAudit(tx, {

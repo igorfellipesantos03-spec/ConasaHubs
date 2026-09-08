@@ -25,18 +25,26 @@ describe('LinkCard', () => {
   });
 
   it('esconde os controles de edição de quem não pode editar', () => {
-    render(<LinkCard link={link} />);
+    render(<LinkCard link={link} aoEditar={vi.fn()} aoRemover={vi.fn()} />);
 
     expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Excluir/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Favoritar/ })).toBeInTheDocument();
   });
 
-  it('mostra editar e excluir para curadores', () => {
-    render(<LinkCard link={link} podeEditar aoEditar={vi.fn()} aoRemover={vi.fn()} />);
+  it('mostra editar e excluir para quem pode alterar aquele link', () => {
+    render(
+      <LinkCard link={{ ...link, canEdit: true }} aoEditar={vi.fn()} aoRemover={vi.fn()} />,
+    );
 
     expect(screen.getByRole('button', { name: 'Editar Protheus' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Excluir Protheus' })).toBeInTheDocument();
+  });
+
+  it('não oferece edição em telas que não tratam edição, como a de favoritos', () => {
+    render(<LinkCard link={{ ...link, canEdit: true }} />);
+
+    expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeInTheDocument();
   });
 
   it('avisa quando o link é restrito ao setor', () => {
