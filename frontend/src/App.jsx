@@ -4,6 +4,7 @@ import { AppShell } from './components/layout/AppShell';
 import { CarregandoPagina } from './components/ui/Feedback';
 import { OnboardingWizard } from './features/onboarding/OnboardingWizard';
 import Login from './pages/Login';
+import Inicio from './pages/Inicio';
 import Setores from './pages/Setores';
 import HubPage from './pages/HubPage';
 import Favoritos from './pages/Favoritos';
@@ -14,19 +15,24 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
 
-      <Route element={<LayoutProtegido />}>
+      <Route element={<RotaProtegida />}>
+        {/* A home tem cromo próprio — cabeçalho, órbita e painel — e ocupa a
+            tela inteira no escuro do login. Por isso fica fora do AppShell. */}
         <Route path="/" element={<Inicio />} />
-        <Route path="/setores" element={<Setores />} />
-        <Route path="/setor/:slug" element={<HubPage />} />
-        <Route path="/favoritos" element={<Favoritos />} />
-        <Route path="/admin" element={<SomenteAdmin />} />
-        <Route path="*" element={<NaoEncontrado />} />
+
+        <Route element={<ComAppShell />}>
+          <Route path="/setores" element={<Setores />} />
+          <Route path="/setor/:slug" element={<HubPage />} />
+          <Route path="/favoritos" element={<Favoritos />} />
+          <Route path="/admin" element={<SomenteAdmin />} />
+          <Route path="*" element={<NaoEncontrado />} />
+        </Route>
       </Route>
     </Routes>
   );
 }
 
-function LayoutProtegido() {
+function RotaProtegida() {
   const { user, carregando, precisaCadastro } = useAuth();
   const location = useLocation();
 
@@ -37,20 +43,15 @@ function LayoutProtegido() {
   // antes disso não há o que mostrar por baixo.
   if (precisaCadastro) return <OnboardingWizard />;
 
+  return <Outlet />;
+}
+
+function ComAppShell() {
   return (
     <AppShell>
       <Outlet />
     </AppShell>
   );
-}
-
-/**
- * Quem tem setor cai direto nos links do próprio setor — a home não é um menu
- * para chegar onde a pessoa já sabe que quer ir.
- */
-function Inicio() {
-  const { user } = useAuth();
-  return <Navigate to={user?.hubSlug ? `/setor/${user.hubSlug}` : '/setores'} replace />;
 }
 
 function SomenteAdmin() {
@@ -62,7 +63,7 @@ function NaoEncontrado() {
   return (
     <div className="card px-6 py-12 text-center">
       <p className="eyebrow">Erro 404</p>
-      <h1 className="mt-2 text-xl font-semibold text-ink">Página não encontrada</h1>
+      <h1 className="mt-2 text-xl font-semibold text-white">Página não encontrada</h1>
       <p className="mt-1 text-muted">O endereço digitado não existe no CentralHub.</p>
     </div>
   );

@@ -33,9 +33,9 @@ export function useAlternarFavorito(hubSlug) {
           link.id === linkId ? { ...link, isFavorite: !favoritado } : link;
         return {
           ...hub,
-          categories: hub.categories.map((secao) => ({
-            ...secao,
-            links: secao.links.map(alternar),
+          folders: hub.folders.map((pasta) => ({
+            ...pasta,
+            links: pasta.links.map(alternar),
           })),
           uncategorizedLinks: hub.uncategorizedLinks.map(alternar),
         };

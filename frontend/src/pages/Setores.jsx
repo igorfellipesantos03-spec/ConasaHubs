@@ -4,6 +4,7 @@ import { useHubs } from '../hooks/useHubs';
 import { useAuth } from '../contexts/AuthContext';
 import { Icon } from '../components/ui/Icon';
 import { AvisoDeErro, EsqueletoDeCards } from '../components/ui/Feedback';
+import { corNoEscuro } from '../utils/texto';
 import { errorMessage } from '../services/api';
 
 export default function Setores() {
@@ -13,7 +14,7 @@ export default function Setores() {
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="text-[28px] font-extrabold text-ink">Setores</h1>
+        <h1 className="text-[28px] font-extrabold text-white">Setores</h1>
         <p className="mt-1.5 text-[15px] text-muted">
           {user?.hubId
             ? 'Todos os hubs da empresa. O seu abre por padrão ao entrar.'
@@ -28,7 +29,12 @@ export default function Setores() {
 
       {hubs && (
         <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr))]">
-          {hubs.map((hub, indice) => (
+          {hubs.map((hub, indice) => {
+            // A cor vem pensada para papel branco; no escuro ela é clareada
+            // sem perder o matiz, senão metade dos setores fica invisível.
+            const cor = corNoEscuro(hub.color);
+
+            return (
             <Link
               key={hub.id}
               to={`/setor/${hub.slug}`}
@@ -39,27 +45,27 @@ export default function Setores() {
               <span
                 aria-hidden="true"
                 className="absolute inset-x-0 top-0 h-24 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                style={{ background: `linear-gradient(180deg, ${hub.color}12, transparent)` }}
+                style={{ background: `linear-gradient(180deg, ${cor}1f, transparent)` }}
               />
 
               <span className="relative flex items-start justify-between gap-3">
                 <span
                   className="flex h-12 w-12 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-105"
                   style={{
-                    background: `linear-gradient(140deg, ${hub.color}24, ${hub.color}0f)`,
-                    color: hub.color,
+                    background: `linear-gradient(140deg, ${cor}2e, ${cor}14)`,
+                    color: cor,
                   }}
                 >
                   <Icon name={hub.icon} className="h-6 w-6" strokeWidth={1.7} />
                 </span>
 
-                {hub.isMine && <span className="pill bg-ink text-white">seu setor</span>}
+                {hub.isMine && <span className="pill bg-tech/20 text-tech-100">seu setor</span>}
               </span>
 
               <span className="relative mt-4 block">
                 <span className="flex items-center gap-1.5">
                   <span className="text-[17px] font-bold text-graphite">{hub.name}</span>
-                  <ArrowRight className="h-4 w-4 text-ink-200 transition-all duration-200 group-hover:translate-x-1 group-hover:text-tech" />
+                  <ArrowRight className="h-4 w-4 text-ink-400 transition-all duration-200 group-hover:translate-x-1 group-hover:text-tech" />
                 </span>
 
                 {hub.description && (
@@ -75,13 +81,14 @@ export default function Setores() {
                 {hub.linkCount} {hub.linkCount === 1 ? 'link' : 'links'}
                 {hub.canEdit && (
                   <>
-                    <span className="h-1 w-1 rounded-full bg-ink-200" />
-                    <span className="text-tech-600">você é curador</span>
+                    <span className="h-1 w-1 rounded-full bg-ink-400" />
+                    <span className="text-tech">você é curador</span>
                   </>
                 )}
               </span>
             </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

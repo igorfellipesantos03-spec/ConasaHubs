@@ -29,7 +29,7 @@ export function Field({ id, apoioId, label, hint, error, children }) {
       {children}
 
       {apoio && (
-        <span id={apoioId} className={`mt-1.5 block text-[13px] ${error ? 'text-danger' : 'text-muted'}`}>
+        <span id={apoioId} className={`mt-1.5 block text-[13px] ${error ? 'text-danger-200' : 'text-muted'}`}>
           {apoio}
         </span>
       )}

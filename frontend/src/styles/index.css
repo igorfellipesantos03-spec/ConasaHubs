@@ -22,30 +22,34 @@
   --color-tech-100: #c9eef7;
   --color-tech-50: #edfafd;
 
-  --color-ground: #f4f6f9; /* fundo do sistema */
-  --color-surface: #ffffff; /* cards */
-
-  /* Só o login usa estes dois: é a única tela em modo escuro. */
+  /* O portal inteiro é escuro. Sair da home orbital para uma tela branca
+     estourava a vista e parecia outro produto; agora o fundo é o mesmo da
+     constelação do login, e os degraus acima dele carregam o conteúdo. */
   --color-night: #050a17; /* fundo da constelação */
   --color-deep: #0a1526; /* card do login */
 
-  --color-graphite: #212529; /* texto principal */
-  --color-muted: #64707f;
-  --color-hairline: #e8edf3;
-  --color-danger: #d92d20;
-  --color-success: #0d9a6a;
-  --color-amber: #e08b16;
+  --color-ground: #050a17; /* fundo do sistema */
+  --color-surface: #0c1a2e; /* cards e barras */
+  --color-raised: #16263e; /* hover e degraus acima do card */
+
+  --color-graphite: #e9eef6; /* texto principal */
+  --color-muted: #8ba3c4;
+  --color-hairline: #1d3355;
+  --color-danger: #d92d20; /* preenchimento de botão destrutivo */
+  --color-danger-200: #ff9a92; /* o vermelho legível como texto no escuro */
+  --color-success: #17b581;
+  --color-amber: #f0a72e;
 
   --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 
   --radius-card: 16px;
   --radius-control: 12px;
 
-  /* Sombras com tinta azul em vez de cinza: assentam o card no fundo sem
-     precisar de borda dura. */
-  --shadow-soft: 0 1px 2px rgba(15, 44, 89, 0.04), 0 4px 14px -6px rgba(15, 44, 89, 0.1);
-  --shadow-lift: 0 2px 4px rgba(15, 44, 89, 0.04), 0 16px 32px -12px rgba(15, 44, 89, 0.2);
-  --shadow-header: 0 1px 3px rgba(15, 44, 89, 0.06);
+  /* No escuro, sombra sozinha não desenha nada: quem recorta o card é um fio
+     de luz na borda, e a sombra só afunda o fundo atrás dele. */
+  --shadow-soft: 0 0 0 1px rgba(148, 178, 217, 0.1), 0 4px 14px -6px rgba(0, 0, 0, 0.7);
+  --shadow-lift: 0 0 0 1px rgba(148, 178, 217, 0.16), 0 18px 40px -14px rgba(0, 0, 0, 0.85);
+  --shadow-header: 0 1px 0 0 rgba(148, 178, 217, 0.08);
 }
 
 @layer base {
@@ -80,7 +84,13 @@
   /* Barras de rolagem discretas, no tom do sistema. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-ink-200) transparent;
+    scrollbar-color: var(--color-ink-700) transparent;
+  }
+
+  /* Combos e datas nativos vêm claros no Chromium se ninguém avisar que a
+     página é escura — o menu abriria branco no meio de tudo. */
+  :root {
+    color-scheme: dark;
   }
 }
 
@@ -134,6 +144,60 @@
 
 .animate-rise {
   animation: rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Home orbital ──────────────────────────────────────────────────────────
+   A tela inicial desenha os setores em volta da marca. Três movimentos
+   sustentam a cena: o pulso de dados percorrendo os raios, o anel pontilhado
+   girando ao redor do centro e a entrada lateral do painel de setores.
+   Todos param sozinhos sob `prefers-reduced-motion` (regra global acima). */
+
+/* 14 + 146 = 160: o deslocamento fecha exatamente um ciclo do tracejado, então
+   o traço parece um pulso único correndo do centro para o setor. */
+@keyframes fluxo {
+  to {
+    stroke-dashoffset: -160;
+  }
+}
+
+.animate-fluxo {
+  animation: fluxo 6s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-girar {
+  animation: girar 40s linear infinite;
+}
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-surgir {
+  animation: surgir 0.2s ease-out both;
+}
+
+@keyframes deslizar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.animate-deslizar {
+  animation: deslizar 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ── Checkbox neon ─────────────────────────────────────────────────────────

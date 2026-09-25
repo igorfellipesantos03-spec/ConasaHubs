@@ -1,11 +1,11 @@
 const VARIANTES = {
   primary: 'bg-tech text-white hover:bg-tech-600 disabled:bg-tech/40 shadow-soft',
   institutional: 'bg-ink text-white hover:bg-ink-800 disabled:bg-ink/40 shadow-soft',
-  outline: 'bg-surface text-graphite shadow-soft hover:bg-ground',
+  outline: 'bg-surface text-graphite shadow-soft hover:bg-raised',
   /* Sobre o azul do hero: vidro fosco em vez de um botão branco duro. */
   translucido:
     'bg-white/12 text-white ring-1 ring-inset ring-white/20 backdrop-blur-sm hover:bg-white/20',
-  ghost: 'text-muted hover:bg-ground hover:text-graphite',
+  ghost: 'text-muted hover:bg-raised hover:text-graphite',
   danger: 'bg-danger text-white hover:bg-danger/90 shadow-soft',
 };
 

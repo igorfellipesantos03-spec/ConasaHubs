@@ -21,10 +21,10 @@ export function EsqueletoDeCards({ quantidade = 6 }) {
     <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))]">
       {Array.from({ length: quantidade }, (_, indice) => (
         <div key={indice} className="card flex h-[104px] items-start gap-3.5 p-4">
-          <div className="h-11 w-11 shrink-0 animate-pulse rounded-xl bg-ground" />
+          <div className="h-11 w-11 shrink-0 animate-pulse rounded-xl bg-raised" />
           <div className="flex-1 space-y-2 pt-1">
-            <div className="h-3.5 w-1/2 animate-pulse rounded-full bg-ground" />
-            <div className="h-3 w-4/5 animate-pulse rounded-full bg-ground" />
+            <div className="h-3.5 w-1/2 animate-pulse rounded-full bg-raised" />
+            <div className="h-3 w-4/5 animate-pulse rounded-full bg-raised" />
           </div>
         </div>
       ))}
@@ -36,7 +36,7 @@ export function AvisoDeErro({ children }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2.5 rounded-control bg-danger/8 px-3.5 py-3 text-sm font-medium text-danger"
+      className="flex items-start gap-2.5 rounded-control bg-danger/15 px-3.5 py-3 text-sm font-medium text-danger-200"
     >
       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <span>{children}</span>
@@ -48,7 +48,7 @@ export function AvisoDeErro({ children }) {
 export function EstadoVazio({ icone = 'Link', titulo, descricao, acao }) {
   return (
     <div className="card flex flex-col items-center gap-3.5 px-6 py-14 text-center">
-      <div className="rounded-2xl bg-tech-50 p-3.5 text-ink-400">
+      <div className="rounded-2xl bg-tech/12 p-3.5 text-tech-100">
         <Icon name={icone} className="h-6 w-6" />
       </div>
       <div>

@@ -3,7 +3,13 @@ import { z } from 'zod';
 import { asyncRoute } from '../lib/asyncRoute.js';
 import { requireAdmin, requireAuth } from '../middlewares/authMiddleware.js';
 import * as adminService from '../services/adminService.js';
+import * as folderService from '../services/folderService.js';
 import { listAudit } from '../services/auditService.js';
+import {
+  folderSchema,
+  updateFolderSchema,
+  reorderSchema,
+} from '../validators/contentValidators.js';
 
 const router = Router();
 
@@ -101,6 +107,56 @@ router.delete(
   '/dept-mappings/:id',
   asyncRoute(async (req, res) => {
     await adminService.deleteDeptMapping(req.user, req.params.id, req.ip);
+    res.status(204).end();
+  }),
+);
+
+/* ── Pastas ────────────────────────────────────────────────────────────────────
+   A pasta é o vocabulário da empresa inteira — aparece na home de todo mundo e
+   organiza a página de cada setor —, então quem a define é a administração. A
+   leitura fica em `GET /api/folders`; o conteúdo de dentro dela, no setor. */
+
+router.get(
+  '/folders',
+  asyncRoute(async (_req, res) => {
+    res.json({ folders: await folderService.listAllFolders() });
+  }),
+);
+
+router.post(
+  '/folders',
+  asyncRoute(async (req, res) => {
+    const folder = await folderService.createFolder(req.user, folderSchema.parse(req.body), req.ip);
+    res.status(201).json({ folder });
+  }),
+);
+
+// Antes da rota com `:id`, senão "reorder" seria lido como um identificador.
+router.patch(
+  '/folders/reorder',
+  asyncRoute(async (req, res) => {
+    await folderService.reorderFolders(req.user, reorderSchema.parse(req.body).items, req.ip);
+    res.status(204).end();
+  }),
+);
+
+router.patch(
+  '/folders/:id',
+  asyncRoute(async (req, res) => {
+    const folder = await folderService.updateFolder(
+      req.user,
+      req.params.id,
+      updateFolderSchema.parse(req.body),
+      req.ip,
+    );
+    res.json({ folder });
+  }),
+);
+
+router.delete(
+  '/folders/:id',
+  asyncRoute(async (req, res) => {
+    await folderService.deleteFolder(req.user, req.params.id, req.ip);
     res.status(204).end();
   }),
 );

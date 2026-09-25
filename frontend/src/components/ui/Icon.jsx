@@ -1,6 +1,6 @@
 import {
   BarChart3, Bot, BookOpen, Briefcase, Building2, Calculator, Calendar, ClipboardList,
-  Cloud, Code, Cpu, Database, Droplets, Factory, FileText, Files, Gauge, Globe,
+  Cloud, Code, Cpu, Database, Droplets, Factory, FileText, Files, Folder, Gauge, Globe,
   GraduationCap, Handshake, KeyRound, Landmark, LayoutGrid, LifeBuoy, Link as LinkIcon,
   Mail, Map, MessageSquare, Package, Phone, Receipt, Server, Settings, ShieldCheck,
   Star, Terminal, TrendingUp, Truck, UserRound, Users, Wallet, Workflow, Wrench, Zap,
@@ -12,7 +12,7 @@ import {
  */
 const ICONES = {
   BarChart3, Bot, BookOpen, Briefcase, Building2, Calculator, Calendar, ClipboardList,
-  Cloud, Code, Cpu, Database, Droplets, Factory, FileText, Files, Gauge, Globe,
+  Cloud, Code, Cpu, Database, Droplets, Factory, FileText, Files, Folder, Gauge, Globe,
   GraduationCap, Handshake, KeyRound, Landmark, LayoutGrid, LifeBuoy, Link: LinkIcon,
   Mail, Map, MessageSquare, Package, Phone, Receipt, Server, Settings, ShieldCheck,
   Star, Terminal, TrendingUp, Truck, UserRound, Users, Wallet, Workflow, Wrench, Zap,
@@ -26,7 +26,7 @@ export function Icon({ name, className = 'h-5 w-5', strokeWidth = 1.75, ...rest 
 
 /** Ícones oferecidos no seletor, agrupados pelo tipo de recurso que representam. */
 export const ICONES_DISPONIVEIS = [
-  'Link', 'Globe', 'Database', 'Server', 'Cloud', 'Cpu', 'Terminal', 'Code',
+  'Folder', 'Link', 'Globe', 'Database', 'Server', 'Cloud', 'Cpu', 'Terminal', 'Code',
   'Workflow', 'Bot', 'Zap', 'Settings', 'Wrench', 'ShieldCheck', 'KeyRound',
   'BookOpen', 'FileText', 'Files', 'ClipboardList', 'GraduationCap',
   'Users', 'UserRound', 'Building2', 'Landmark', 'Briefcase', 'Handshake',

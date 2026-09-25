@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useHubs } from '../../hooks/useHubs';
 import { Icon } from '../ui/Icon';
 import { LogoComNome } from '../ui/Logo';
+import { corNoEscuro } from '../../utils/texto';
 
 export function AppShell({ children }) {
   const [menuAberto, setMenuAberto] = useState(false);
@@ -29,8 +30,9 @@ export function AppShell({ children }) {
 }
 
 /**
- * Cabeçalho claro: o azul institucional fica reservado para a marca e para o
- * topo de cada setor, em vez de uma faixa maciça atravessando a tela.
+ * Cabeçalho no mesmo escuro da home: uma barra um degrau acima do fundo, presa
+ * ao topo. O azul institucional fica reservado para a marca e para o topo de
+ * cada setor, em vez de virar uma faixa maciça atravessando a tela.
  */
 function Cabecalho({ aoAbrirMenu }) {
   const { user, logout, ehAdmin } = useAuth();
@@ -49,7 +51,7 @@ function Cabecalho({ aoAbrirMenu }) {
         <button
           type="button"
           onClick={aoAbrirMenu}
-          className="-ml-1 rounded-xl p-2 text-muted transition-colors hover:bg-ground hover:text-ink lg:hidden"
+          className="-ml-1 rounded-xl p-2 text-muted transition-colors hover:bg-raised hover:text-white lg:hidden"
           aria-label="Abrir menu de setores"
         >
           <Menu className="h-5 w-5" />
@@ -65,7 +67,7 @@ function Cabecalho({ aoAbrirMenu }) {
               to="/admin"
               className={({ isActive }) =>
                 `flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition-colors ${
-                  isActive ? 'bg-tech-50 text-ink' : 'text-muted hover:bg-ground hover:text-graphite'
+                  isActive ? 'bg-tech/15 text-tech-100' : 'text-muted hover:bg-raised hover:text-graphite'
                 }`
               }
             >
@@ -75,7 +77,7 @@ function Cabecalho({ aoAbrirMenu }) {
           )}
 
           <div className="mx-1 hidden items-center gap-2.5 sm:flex">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-tech-50 text-[13px] font-bold text-ink">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-tech/15 text-[13px] font-bold text-tech-100">
               {iniciais}
             </span>
             <span className="leading-tight">
@@ -87,7 +89,7 @@ function Cabecalho({ aoAbrirMenu }) {
           <button
             type="button"
             onClick={logout}
-            className="flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium text-muted transition-colors hover:bg-ground hover:text-graphite"
+            className="flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium text-muted transition-colors hover:bg-raised hover:text-graphite"
           >
             <LogOut className="h-[18px] w-[18px]" />
             <span className="sr-only sm:not-sr-only">Sair</span>
@@ -142,7 +144,7 @@ function Navegacao({ aberta, aoFechar }) {
 
       {aberta && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]" onClick={aoFechar} />
+          <div className="absolute inset-0 bg-night/75 backdrop-blur-[2px]" onClick={aoFechar} />
           <div className="animate-rise absolute inset-y-0 left-0 w-[280px] overflow-y-auto bg-surface shadow-lift">
             <div className="flex items-center justify-between border-b border-hairline px-4 py-3.5">
               <LogoComNome />
@@ -150,7 +152,7 @@ function Navegacao({ aberta, aoFechar }) {
                 type="button"
                 onClick={aoFechar}
                 aria-label="Fechar menu"
-                className="rounded-xl p-1.5 text-muted hover:bg-ground"
+                className="rounded-xl p-1.5 text-muted hover:bg-raised"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -171,15 +173,15 @@ function ItemDeMenu({ to, icone, rotulo, contagem, ehMeuSetor, cor }) {
         `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-150 ${
           isActive
             ? 'bg-ink font-semibold text-white shadow-soft'
-            : 'font-medium text-graphite hover:bg-ground'
+            : 'font-medium text-graphite hover:bg-raised'
         }`
       }
     >
       {({ isActive }) => (
         <>
           <span
-            className={isActive ? 'text-tech' : 'text-muted transition-colors group-hover:text-ink'}
-            style={!isActive && cor ? { color: cor } : undefined}
+            className={isActive ? 'text-tech' : 'text-muted transition-colors group-hover:text-white'}
+            style={!isActive && cor ? { color: corNoEscuro(cor) } : undefined}
           >
             {icone}
           </span>
@@ -189,7 +191,7 @@ function ItemDeMenu({ to, icone, rotulo, contagem, ehMeuSetor, cor }) {
           {ehMeuSetor ? (
             <span
               className={`pill ${
-                isActive ? 'bg-white/15 text-white' : 'bg-tech-50 text-ink'
+                isActive ? 'bg-white/15 text-white' : 'bg-tech/15 text-tech-100'
               }`}
             >
               seu

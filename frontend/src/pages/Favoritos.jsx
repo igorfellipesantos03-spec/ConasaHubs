@@ -25,7 +25,7 @@ export default function Favoritos() {
     <div className="space-y-6">
       <header>
         <p className="eyebrow text-tech">Atalhos</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">Meus favoritos</h1>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Meus favoritos</h1>
         <p className="mt-1 text-muted">Os links que você marcou com estrela, de qualquer setor.</p>
       </header>
 
@@ -41,7 +41,7 @@ export default function Favoritos() {
             acao={
               <Link
                 to="/setores"
-                className="inline-flex h-10 items-center rounded-lg border border-hairline bg-surface px-4 text-sm font-medium text-graphite transition-colors hover:border-ink-300 hover:bg-ground"
+                className="inline-flex h-10 items-center rounded-lg border border-hairline bg-surface px-4 text-sm font-medium text-graphite transition-colors hover:border-tech/40 hover:bg-raised"
               >
                 Ver os setores
               </Link>

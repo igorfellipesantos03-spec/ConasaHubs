@@ -90,7 +90,7 @@ export function OnboardingWizard() {
           <Logo className="h-14 w-14" arredondamento="rounded-2xl" />
 
           <div>
-            <p className="text-[17px] font-bold text-ink">Bem-vindo ao CentralHub</p>
+            <p className="text-[17px] font-bold text-white">Bem-vindo ao CentralHub</p>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">
               O sistema interno da Conasa para você organizar e encontrar tudo o que usa no
               trabalho.
@@ -193,7 +193,7 @@ export function OnboardingWizard() {
 function Passo({ icone: Icone, numero, de, titulo }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tech-50 text-tech">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tech/15 text-tech">
         <Icone className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
       </span>
       <div>

@@ -3,27 +3,33 @@ import { badRequest, notFound } from '../lib/errors.js';
 import { recordAudit } from './auditService.js';
 import { assertPodeAlterar } from './hubService.js';
 
-/** Garante que a categoria informada pertence mesmo ao hub sendo editado. */
-async function assertCategoryBelongsToHub(tx, categoryId, hubId) {
-  if (!categoryId) return;
-  const category = await tx.linkCategory.findFirst({
-    where: { id: categoryId, hubId },
+/**
+ * Garante que a pasta existe e está no ar.
+ *
+ * A pasta é da empresa, não do setor — qualquer setor arquiva em qualquer uma
+ * delas —, então aqui não há dono a conferir: basta ela existir e não ter sido
+ * desligada pela administração enquanto o formulário estava aberto.
+ */
+async function assertFolderIsUsable(tx, folderId) {
+  if (!folderId) return;
+  const folder = await tx.folder.findFirst({
+    where: { id: folderId, active: true },
     select: { id: true },
   });
-  if (!category) throw badRequest('Seção inválida para este setor.');
+  if (!folder) throw badRequest('Pasta inválida ou fora do ar.');
 }
 
 export async function createLink(actor, hub, data, ip) {
   return prisma.$transaction(async (tx) => {
-    await assertCategoryBelongsToHub(tx, data.categoryId, hub.id);
+    await assertFolderIsUsable(tx, data.folderId);
 
-    const order = await nextOrder(tx, hub.id, data.categoryId ?? null);
+    const order = await nextOrder(tx, hub.id, data.folderId ?? null);
 
     const link = await tx.link.create({
       data: {
         ...data,
         description: data.description || null,
-        categoryId: data.categoryId ?? null,
+        folderId: data.folderId ?? null,
         order,
         hubId: hub.id,
         createdById: actor.id,
@@ -51,8 +57,8 @@ export async function updateLink(actor, hub, linkId, data, ip) {
 
     await assertPodeAlterar(tx, actor, hub.id, before, 'este link');
 
-    if (data.categoryId !== undefined) {
-      await assertCategoryBelongsToHub(tx, data.categoryId, hub.id);
+    if (data.folderId !== undefined) {
+      await assertFolderIsUsable(tx, data.folderId);
     }
 
     const link = await tx.link.update({
@@ -100,7 +106,7 @@ export async function deleteLink(actor, hub, linkId, ip) {
 }
 
 /**
- * Aplica a nova ordem (e a eventual troca de seção) de uma vez só, para que o
+ * Aplica a nova ordem (e a eventual troca de pasta) de uma vez só, para que o
  * arrastar-e-soltar do frontend gere um único request.
  */
 export async function reorderLinks(actor, hub, items, ip) {
@@ -108,7 +114,7 @@ export async function reorderLinks(actor, hub, items, ip) {
     const ids = items.map((item) => item.id);
     const existing = await tx.link.findMany({
       where: { id: { in: ids }, hubId: hub.id },
-      select: { id: true, categoryId: true, order: true },
+      select: { id: true, folderId: true, order: true },
     });
 
     if (existing.length !== ids.length) {
@@ -116,14 +122,14 @@ export async function reorderLinks(actor, hub, items, ip) {
     }
 
     for (const item of items) {
-      if (item.categoryId !== undefined) {
-        await assertCategoryBelongsToHub(tx, item.categoryId, hub.id);
+      if (item.folderId !== undefined) {
+        await assertFolderIsUsable(tx, item.folderId);
       }
       await tx.link.update({
         where: { id: item.id },
         data: {
           order: item.order,
-          ...(item.categoryId !== undefined ? { categoryId: item.categoryId } : {}),
+          ...(item.folderId !== undefined ? { folderId: item.folderId } : {}),
         },
       });
     }
@@ -146,9 +152,9 @@ export async function reorderLinks(actor, hub, items, ip) {
   });
 }
 
-async function nextOrder(tx, hubId, categoryId) {
+async function nextOrder(tx, hubId, folderId) {
   const last = await tx.link.findFirst({
-    where: { hubId, categoryId },
+    where: { hubId, folderId },
     orderBy: { order: 'desc' },
     select: { order: true },
   });

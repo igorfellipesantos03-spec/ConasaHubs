@@ -68,7 +68,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/45 p-0 backdrop-blur-[3px] sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-night/75 p-0 backdrop-blur-[3px] sm:items-center sm:p-4"
       onMouseDown={(evento) =>
         dispensavel && evento.target === evento.currentTarget && onClose()
       }
@@ -82,7 +82,7 @@ export function Modal({
       >
         <header className="flex items-start justify-between gap-4 border-b border-hairline px-5 py-4">
           <div>
-            <h2 className="text-lg font-bold text-ink">{title}</h2>
+            <h2 className="text-lg font-bold text-white">{title}</h2>
             {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
           </div>
           {dispensavel && (
@@ -91,7 +91,7 @@ export function Modal({
               data-fechar
               onClick={onClose}
               aria-label="Fechar"
-              className="-mr-1 rounded-lg p-1.5 text-muted transition-colors hover:bg-ground hover:text-graphite"
+              className="-mr-1 rounded-lg p-1.5 text-muted transition-colors hover:bg-raised hover:text-graphite"
             >
               <X className="h-5 w-5" />
             </button>
@@ -101,7 +101,7 @@ export function Modal({
         <div className="px-5 py-4">{children}</div>
 
         {footer && (
-          <footer className="flex justify-end gap-2 border-t border-hairline bg-ground/50 px-5 py-3.5">
+          <footer className="flex justify-end gap-2 border-t border-hairline bg-ground/60 px-5 py-3.5">
             {footer}
           </footer>
         )}

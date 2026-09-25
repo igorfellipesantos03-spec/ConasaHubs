@@ -1,5 +1,6 @@
 import { Icon } from '../../components/ui/Icon';
 import { MarcaDagua } from '../../components/ui/Logo';
+import { corNoEscuro } from '../../utils/texto';
 
 /**
  * Topo da página do setor. As próprias ondas da marca da Conasa entram como
@@ -15,7 +16,7 @@ export function HubHero({ hub, quantidadeDeLinks, acoes }) {
         <div className="flex min-w-0 items-start gap-4">
           <span
             className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-inset ring-white/15 backdrop-blur-sm"
-            style={{ color: hub.color === '#0F2C59' ? '#7FD8EA' : hub.color }}
+            style={{ color: corNoEscuro(hub.color) }}
           >
             <Icon name={hub.icon} className="h-7 w-7" strokeWidth={1.6} />
           </span>

@@ -66,7 +66,7 @@ model User {
   refreshTokens    RefreshToken[]
   auditLogs        AuditLog[]
   createdLinks     Link[]   @relation("LinkCreatedBy")
-  createdCategories LinkCategory[] @relation("CategoryCreatedBy")
+  createdFolders   Folder[] @relation("FolderCreatedBy")
 
   @@index([hubId])
   @@map("users")
@@ -91,7 +91,6 @@ model Hub {
 
   members     User[]         @relation("UserHub")
   curators    HubCurator[]
-  categories  LinkCategory[]
   links       Link[]
   deptMappings DeptMapping[]
 
@@ -128,34 +127,47 @@ model HubCurator {
   @@map("hub_curators")
 }
 
-/// Agrupamento de links dentro de um hub (ex.: "Sistemas", "Documentação").
-model LinkCategory {
-  id        String   @id @default(uuid())
-  hubId     String
-  hub       Hub      @relation(fields: [hubId], references: [id], onDelete: Cascade)
-  name      String
-  order     Int      @default(0)
+/// Pasta: o agrupamento de links, igual para a empresa inteira.
+///
+/// Antes cada setor inventava as próprias seções e duas equipes acabavam com
+/// "Sistemas" e "Sistemas internos" querendo dizer a mesma coisa. Agora a
+/// taxonomia é uma só, curada pela administração — e o que muda de setor para
+/// setor é o conteúdo, não o nome da gaveta. São estas pastas que orbitam a
+/// marca na tela inicial.
+model Folder {
+  id          String   @id @default(uuid())
+  /// Identificador estável para a URL (`/setor/ti?pasta=processos`). Nasce do
+  /// nome e não muda em renomeações, para não quebrar link já compartilhado.
+  slug        String   @unique
+  name        String
+  description String?
+  /// Imagem do nó na home, embutida como data URL (`data:image/webp;base64,…`).
+  /// Guardar no banco dispensa pasta de upload, permissão de escrita e regra no
+  /// IIS. O navegador reduz antes de enviar; o validador recusa o que passar.
+  image       String?
+  /// Ícone lucide usado enquanto não há imagem.
+  icon        String   @default("Folder")
+  color       String   @default("#00A8CC")
+  order       Int      @default(0)
+  active      Boolean  @default(true)
 
-  /// Quem criou a seção. Membros comuns só editam/excluem o que criaram; curadores e admin, qualquer uma.
   createdById String?
-  createdBy   User?    @relation("CategoryCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   User?    @relation("FolderCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  links       Link[]
 
-  links     Link[]
-
-  @@unique([hubId, name])
-  @@index([hubId])
-  @@map("link_categories")
+  @@index([active, order])
+  @@map("folders")
 }
 
 model Link {
   id          String         @id @default(uuid())
   hubId       String
   hub         Hub            @relation(fields: [hubId], references: [id], onDelete: Cascade)
-  categoryId  String?
-  category    LinkCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  folderId    String?
+  folder      Folder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
   title       String
   description String?
@@ -173,7 +185,7 @@ model Link {
 
   favorites   Favorite[]
 
-  @@index([hubId, categoryId, order])
+  @@index([hubId, folderId, order])
   @@map("links")
 }
 

@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { Field, Input, Select, Textarea } from '../../components/ui/Field';
 import { AvisoDeErro, Spinner } from '../../components/ui/Feedback';
 import { Icon, ICONES_DISPONIVEIS } from '../../components/ui/Icon';
+import { corNoEscuro } from '../../utils/texto';
 import { errorMessage } from '../../services/api';
 
 const CORES = [
@@ -22,11 +23,19 @@ const VAZIO = {
   url: '',
   icon: 'Link',
   color: '#00A8CC',
-  categoryId: '',
+  folderId: '',
   visibility: 'PUBLIC',
 };
 
-export function LinkFormModal({ aberto, aoFechar, aoSalvar, link, secoes = [], salvando }) {
+export function LinkFormModal({
+  aberto,
+  aoFechar,
+  aoSalvar,
+  link,
+  pastas = [],
+  pastaInicial = '',
+  salvando,
+}) {
   const [dados, setDados] = useState(VAZIO);
   const [erro, setErro] = useState(null);
 
@@ -43,12 +52,14 @@ export function LinkFormModal({ aberto, aoFechar, aoSalvar, link, secoes = [], s
             url: link.url,
             icon: link.icon,
             color: link.color,
-            categoryId: link.categoryId ?? '',
+            folderId: link.folderId ?? '',
             visibility: link.visibility,
           }
-        : VAZIO,
+        // Quem clicou em "Adicionar" no título de uma pasta já disse onde
+        // quer o link; repetir a escolha no formulário seria trabalho à toa.
+        : { ...VAZIO, folderId: pastaInicial },
     );
-  }, [aberto, link]);
+  }, [aberto, link, pastaInicial]);
 
   const atualizar = (campo) => (evento) =>
     setDados((atual) => ({ ...atual, [campo]: evento.target.value }));
@@ -61,7 +72,7 @@ export function LinkFormModal({ aberto, aoFechar, aoSalvar, link, secoes = [], s
       await aoSalvar({
         ...dados,
         description: dados.description.trim(),
-        categoryId: dados.categoryId || null,
+        folderId: dados.folderId || null,
       });
       aoFechar();
     } catch (falha) {
@@ -122,11 +133,13 @@ export function LinkFormModal({ aberto, aoFechar, aoSalvar, link, secoes = [], s
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select label="Seção" value={dados.categoryId} onChange={atualizar('categoryId')}>
-            <option value="">Sem seção</option>
-            {secoes.map((secao) => (
-              <option key={secao.id} value={secao.id}>
-                {secao.name}
+          {/* A pasta é a mesma para a empresa inteira: é ela que orbita a
+              home, e quem chega de lá espera achar o link aqui dentro. */}
+          <Select label="Pasta" value={dados.folderId} onChange={atualizar('folderId')}>
+            <option value="">Sem pasta</option>
+            {pastas.map((pasta) => (
+              <option key={pasta.id} value={pasta.id}>
+                {pasta.name}
               </option>
             ))}
           </Select>
@@ -148,10 +161,12 @@ export function LinkFormModal({ aberto, aoFechar, aoSalvar, link, secoes = [], s
                 aria-pressed={dados.color === cor.valor}
                 className={`h-8 w-8 rounded-lg transition-transform ${
                   dados.color === cor.valor
-                    ? 'ring-2 ring-ink ring-offset-2'
+                    ? 'ring-2 ring-white ring-offset-2 ring-offset-surface'
                     : 'hover:scale-105'
                 }`}
-                style={{ backgroundColor: cor.valor }}
+                // A amostra mostra a cor como ela vai aparecer no card escuro,
+                // não o hexadecimal cru que fica guardado no banco.
+                style={{ backgroundColor: corNoEscuro(cor.valor) }}
               />
             ))}
           </div>
@@ -168,8 +183,8 @@ export function LinkFormModal({ aberto, aoFechar, aoSalvar, link, secoes = [], s
                 aria-pressed={dados.icon === nome}
                 className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
                   dados.icon === nome
-                    ? 'bg-tech-50 text-ink ring-1 ring-tech'
-                    : 'text-muted hover:bg-ground hover:text-graphite'
+                    ? 'bg-tech/15 text-tech-100 ring-1 ring-tech'
+                    : 'text-muted hover:bg-raised hover:text-graphite'
                 }`}
               >
                 <Icon name={nome} className="h-4 w-4" />
@@ -183,7 +198,10 @@ export function LinkFormModal({ aberto, aoFechar, aoSalvar, link, secoes = [], s
           <div className="flex items-center gap-3">
             <span
               className="flex h-9 w-9 items-center justify-center rounded-lg"
-              style={{ backgroundColor: `${dados.color}14`, color: dados.color }}
+              style={{
+                backgroundColor: `${corNoEscuro(dados.color)}1f`,
+                color: corNoEscuro(dados.color),
+              }}
             >
               <Icon name={dados.icon} />
             </span>

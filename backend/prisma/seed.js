@@ -16,10 +16,9 @@ const hubs = [
     color: '#0F2C59',
     order: 1,
     deptCodes: [],
-    categories: [
+    pastas: [
       {
-        name: 'Sistemas',
-        order: 1,
+        slug: 'sistemas',
         links: [
           {
             title: 'Protheus',
@@ -36,8 +35,7 @@ const hubs = [
         ],
       },
       {
-        name: 'Documentação',
-        order: 2,
+        slug: 'processos',
         links: [
           {
             title: 'Documentações técnicas',
@@ -57,7 +55,7 @@ const hubs = [
     color: '#00A8CC',
     order: 2,
     deptCodes: [],
-    categories: [],
+    pastas: [],
   },
   {
     slug: 'financeiro',
@@ -67,7 +65,7 @@ const hubs = [
     color: '#0F2C59',
     order: 3,
     deptCodes: [],
-    categories: [],
+    pastas: [],
   },
   {
     slug: 'comercial',
@@ -77,7 +75,7 @@ const hubs = [
     color: '#00A8CC',
     order: 4,
     deptCodes: [],
-    categories: [],
+    pastas: [],
   },
   {
     slug: 'operacoes',
@@ -87,12 +85,32 @@ const hubs = [
     color: '#0F2C59',
     order: 5,
     deptCodes: [],
-    categories: [],
+    pastas: [],
   },
 ];
 
+/**
+ * As seis pastas padrão. A migração já as cria; a lista existe aqui para o
+ * banco montado com `prisma db push` (que não roda migração) nascer igual.
+ */
+const pastasPadrao = [
+  { slug: 'processos', name: 'Processos', description: 'Fluxos, procedimentos e como as coisas andam.', icon: 'Workflow', color: '#00A8CC', order: 0 },
+  { slug: 'riscos', name: 'Riscos', description: 'Controles, conformidade e segurança.', icon: 'ShieldCheck', color: '#B42318', order: 1 },
+  { slug: 'gestao', name: 'Gestão', description: 'Planejamento, metas e acompanhamento.', icon: 'Briefcase', color: '#6941C6', order: 2 },
+  { slug: 'orcamento', name: 'Orçamento', description: 'Custos, previsão e prestação de contas.', icon: 'Wallet', color: '#067647', order: 3 },
+  { slug: 'indicadores', name: 'Indicadores', description: 'Números que a equipe acompanha.', icon: 'BarChart3', color: '#B54708', order: 4 },
+  { slug: 'sistemas', name: 'Sistemas', description: 'Os sistemas usados no dia a dia.', icon: 'Database', color: '#0F2C59', order: 5 },
+];
+
 async function main() {
-  for (const { deptCodes, categories, ...hubData } of hubs) {
+  // `update: {}` de propósito: se o admin já renomeou "Gestão" ou trocou a cor,
+  // rodar o seed de novo não desfaz o ajuste dele.
+  for (const pasta of pastasPadrao) {
+    await prisma.folder.upsert({ where: { slug: pasta.slug }, update: {}, create: pasta });
+  }
+  console.log(`${pastasPadrao.length} pasta(s) padrão prontas`);
+
+  for (const { deptCodes, pastas, ...hubData } of hubs) {
     const hub = await prisma.hub.upsert({
       where: { slug: hubData.slug },
       update: {},               // não sobrescreve o que os curadores já ajustaram
@@ -107,12 +125,9 @@ async function main() {
       });
     }
 
-    for (const { links, ...categoryData } of categories) {
-      const category = await prisma.linkCategory.upsert({
-        where: { hubId_name: { hubId: hub.id, name: categoryData.name } },
-        update: {},
-        create: { ...categoryData, hubId: hub.id },
-      });
+    for (const { slug, links } of pastas) {
+      const folder = await prisma.folder.findUnique({ where: { slug }, select: { id: true } });
+      if (!folder) continue;
 
       for (const [index, link] of links.entries()) {
         const existing = await prisma.link.findFirst({
@@ -121,7 +136,7 @@ async function main() {
         if (existing) continue;
 
         await prisma.link.create({
-          data: { ...link, order: index + 1, hubId: hub.id, categoryId: category.id },
+          data: { ...link, order: index + 1, hubId: hub.id, folderId: folder.id },
         });
       }
     }

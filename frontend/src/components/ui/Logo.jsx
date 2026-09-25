@@ -14,14 +14,16 @@ export function Logo({ className = 'h-9 w-9', arredondamento = 'rounded-xl' }) {
   );
 }
 
-/** Marca com o nome do produto ao lado, usada no cabeçalho e no login. */
-export function LogoComNome({ tom = 'escuro', className = '' }) {
-  const corDoTexto = tom === 'claro' ? 'text-white' : 'text-ink';
-
+/**
+ * Marca com o nome do produto ao lado, usada no cabeçalho. O portal é escuro
+ * de ponta a ponta, então o nome é sempre branco — não há mais fundo claro
+ * sobre o qual ele precisasse escurecer.
+ */
+export function LogoComNome({ className = '' }) {
   return (
     <span className={`flex items-center gap-2.5 ${className}`}>
       <Logo />
-      <span className={`text-[17px] font-extrabold tracking-tight ${corDoTexto}`}>
+      <span className="text-[17px] font-extrabold tracking-tight text-white">
         Central<span className="text-tech">Hub</span>
       </span>
     </span>

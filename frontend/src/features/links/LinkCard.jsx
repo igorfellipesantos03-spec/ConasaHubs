@@ -1,5 +1,6 @@
 import { ArrowUpRight, GripVertical, Lock, Pencil, Star, Trash2 } from 'lucide-react';
 import { Icon } from '../../components/ui/Icon';
+import { corNoEscuro } from '../../utils/texto';
 
 /**
  * Card de link. O card inteiro é a área de clique; os controles ficam ocultos
@@ -24,6 +25,10 @@ export function LinkCard({
   // do setor. A tela só deixa de oferecer o que seria recusado no envio.
   const podeEditar = Boolean(link.canEdit && aoEditar);
 
+  // Quem escolheu a cor mirava o card branco; no escuro ela é clareada sem
+  // trocar de matiz, para o código de cores continuar valendo.
+  const cor = corNoEscuro(link.color);
+
   return (
     <div
       ref={referencia}
@@ -39,8 +44,8 @@ export function LinkCard({
         <span
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105"
           style={{
-            background: `linear-gradient(140deg, ${link.color}1f, ${link.color}0d)`,
-            color: link.color,
+            background: `linear-gradient(140deg, ${cor}29, ${cor}12)`,
+            color: cor,
           }}
         >
           <Icon name={link.icon} className="h-[22px] w-[22px]" strokeWidth={1.8} />
@@ -56,7 +61,7 @@ export function LinkCard({
             {link.visibility === 'HUB_ONLY' && (
               <Lock className="mt-1 h-3.5 w-3.5 shrink-0 text-muted" aria-label="Restrito ao setor" />
             )}
-            <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-ink-200 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-tech" />
+            <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-ink-400 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-tech" />
           </span>
 
           {link.description && (
@@ -82,8 +87,8 @@ export function LinkCard({
           aria-pressed={Boolean(link.isFavorite)}
           className={`rounded-lg p-1.5 transition-colors ${
             link.isFavorite
-              ? 'text-tech hover:bg-tech-50'
-              : `text-ink-200 hover:bg-ground hover:text-muted ${revelavel}`
+              ? 'text-tech hover:bg-tech/15'
+              : `text-ink-400 hover:bg-raised hover:text-muted ${revelavel}`
           }`}
         >
           <Star className="h-[18px] w-[18px]" fill={link.isFavorite ? 'currentColor' : 'none'} />
@@ -95,7 +100,7 @@ export function LinkCard({
               type="button"
               onClick={() => aoEditar(link)}
               aria-label={`Editar ${link.title}`}
-              className={`rounded-lg p-1.5 text-ink-200 hover:bg-ground hover:text-graphite ${revelavel}`}
+              className={`rounded-lg p-1.5 text-ink-400 hover:bg-raised hover:text-graphite ${revelavel}`}
             >
               <Pencil className="h-[18px] w-[18px]" />
             </button>
@@ -103,7 +108,7 @@ export function LinkCard({
               type="button"
               onClick={() => aoRemover(link)}
               aria-label={`Excluir ${link.title}`}
-              className={`rounded-lg p-1.5 text-ink-200 hover:bg-danger/8 hover:text-danger ${revelavel}`}
+              className={`rounded-lg p-1.5 text-ink-400 hover:bg-danger/15 hover:text-danger-200 ${revelavel}`}
             >
               <Trash2 className="h-[18px] w-[18px]" />
             </button>
@@ -114,7 +119,7 @@ export function LinkCard({
       {arrastavel && (
         <button
           type="button"
-          className={`absolute bottom-2 right-2 hidden cursor-grab rounded-lg p-1.5 text-ink-200 hover:bg-ground hover:text-muted active:cursor-grabbing sm:block ${revelavel}`}
+          className={`absolute bottom-2 right-2 hidden cursor-grab rounded-lg p-1.5 text-ink-400 hover:bg-raised hover:text-muted active:cursor-grabbing sm:block ${revelavel}`}
           aria-label={`Reordenar ${link.title}`}
           {...atributosDeArraste}
           {...ouvintesDeArraste}

@@ -62,27 +62,3 @@ export function useReordenarLinks(hub) {
     onSuccess: invalidar,
   });
 }
-
-export function useCriarSecao(hub) {
-  const invalidar = useInvalidarHub(hub?.slug);
-  return useMutation({
-    mutationFn: (dados) => api.post(`/hubs/${hub.id}/categories`, dados),
-    onSuccess: invalidar,
-  });
-}
-
-export function useRenomearSecao(hub) {
-  const invalidar = useInvalidarHub(hub?.slug);
-  return useMutation({
-    mutationFn: ({ id, ...dados }) => api.patch(`/hubs/${hub.id}/categories/${id}`, dados),
-    onSuccess: invalidar,
-  });
-}
-
-export function useRemoverSecao(hub) {
-  const invalidar = useInvalidarHub(hub?.slug);
-  return useMutation({
-    mutationFn: (id) => api.delete(`/hubs/${hub.id}/categories/${id}`),
-    onSuccess: invalidar,
-  });
-}

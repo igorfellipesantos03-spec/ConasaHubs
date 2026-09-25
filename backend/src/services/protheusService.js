@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
-import { badGateway, unauthorized } from '../lib/errors.js';
+import { AppError, badGateway, unauthorized } from '../lib/errors.js';
 
 const CREDENCIAIS_INVALIDAS = 'Usuário ou senha incorretos.';
 const PROTHEUS_INDISPONIVEL =
@@ -50,7 +50,7 @@ export async function autenticar(username, password) {
 
     return { accessToken: data.access_token, expiresIn: data.expires_in ?? null };
   } catch (error) {
-    if (error.status) throw error; // já é AppError
+    if (error instanceof AppError) throw error;
 
     const status = error.response?.status;
     if (status === 401 || status === 403) {

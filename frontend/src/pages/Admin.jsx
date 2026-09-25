@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2, X } from 'lucide-react';
 import { useHubs } from '../hooks/useHubs';
 import {
   useAdicionarCurador,
@@ -15,9 +15,11 @@ import {
 import { Button } from '../components/ui/Button';
 import { Input, Select } from '../components/ui/Field';
 import { AvisoDeErro, CarregandoPagina, EstadoVazio, useToast } from '../components/ui/Feedback';
+import { AbaPastas } from '../features/folders/AbaPastas';
 import { errorMessage } from '../services/api';
 
 const ABAS = [
+  { id: 'pastas', rotulo: 'Pastas' },
   { id: 'usuarios', rotulo: 'Usuários' },
   { id: 'curadores', rotulo: 'Curadores' },
   { id: 'departamentos', rotulo: 'Departamentos' },
@@ -30,14 +32,15 @@ export default function Admin() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-[28px] font-extrabold text-ink">Administração</h1>
+        <h1 className="text-[28px] font-extrabold text-white">Administração</h1>
         <p className="mt-1.5 text-[15px] text-muted">
-          Quem administra, quem cura cada setor e de onde vem o setor de cada pessoa.
+          O que a empresa vê ao entrar, quem administra, quais setores cada pessoa coordena e
+          de onde vem o setor de cada uma.
         </p>
       </header>
 
       <div
-        className="inline-flex gap-1 overflow-x-auto rounded-control bg-ground p-1"
+        className="inline-flex gap-1 overflow-x-auto rounded-control bg-surface p-1"
         role="tablist"
       >
         {ABAS.map((item) => (
@@ -48,7 +51,7 @@ export default function Admin() {
             onClick={() => setAba(item.id)}
             className={`whitespace-nowrap rounded-[9px] px-3.5 py-2 text-sm font-semibold transition-all ${
               aba === item.id
-                ? 'bg-surface text-ink shadow-soft'
+                ? 'bg-raised text-white shadow-soft'
                 : 'text-muted hover:text-graphite'
             }`}
           >
@@ -57,6 +60,7 @@ export default function Admin() {
         ))}
       </div>
 
+      {aba === 'pastas' && <AbaPastas />}
       {aba === 'usuarios' && <AbaUsuarios />}
       {aba === 'curadores' && <AbaCuradores />}
       {aba === 'departamentos' && <AbaDepartamentos />}
@@ -70,6 +74,8 @@ function AbaUsuarios() {
   const { data, isLoading, isError, error } = useUsuarios(busca);
   const { data: hubs = [] } = useHubs();
   const atualizar = useAtualizarUsuario();
+  const adicionarSetor = useAdicionarCurador();
+  const removerSetor = useRemoverCurador();
   const toast = useToast();
 
   async function salvar(usuario, mudanca, descricao) {
@@ -78,6 +84,24 @@ function AbaUsuarios() {
       toast.sucesso(descricao);
     } catch (falha) {
       toast.erro(errorMessage(falha, 'Não foi possível atualizar o usuário.'));
+    }
+  }
+
+  async function darSetor(usuario, hub) {
+    try {
+      await adicionarSetor.mutateAsync({ userId: usuario.id, hubId: hub.id });
+      toast.sucesso(`${usuario.name} passou a coordenar ${hub.name}.`);
+    } catch (falha) {
+      toast.erro(errorMessage(falha, 'Não foi possível dar o setor à pessoa.'));
+    }
+  }
+
+  async function tirarSetor(usuario, hub) {
+    try {
+      await removerSetor.mutateAsync({ userId: usuario.id, hubId: hub.id });
+      toast.sucesso(`${usuario.name} não coordena mais ${hub.name}.`);
+    } catch (falha) {
+      toast.erro(errorMessage(falha, 'Não foi possível tirar o setor da pessoa.'));
     }
   }
 
@@ -106,7 +130,16 @@ function AbaUsuarios() {
       )}
 
       {data?.users?.length > 0 && (
-        <Tabela cabecalho={['Pessoa', 'Departamento (Protheus)', 'Setor', 'Papel', 'Situação']}>
+        <Tabela
+          cabecalho={[
+            'Pessoa',
+            'Departamento (Protheus)',
+            'Setor de origem',
+            'Coordena',
+            'Papel',
+            'Situação',
+          ]}
+        >
           {data.users.map((usuario) => (
             <tr key={usuario.id} className="border-t border-hairline">
               <td className="px-4 py-3">
@@ -143,6 +176,15 @@ function AbaUsuarios() {
                 )}
               </td>
               <td className="px-4 py-3">
+                <SetoresCoordenados
+                  usuario={usuario}
+                  hubs={hubs}
+                  aoAdicionar={darSetor}
+                  aoRemover={tirarSetor}
+                  ocupado={adicionarSetor.isPending || removerSetor.isPending}
+                />
+              </td>
+              <td className="px-4 py-3">
                 <select
                   value={usuario.role}
                   onChange={(evento) =>
@@ -167,7 +209,7 @@ function AbaUsuarios() {
                   className={`pill transition-colors ${
                     usuario.active
                       ? 'bg-success/10 text-success hover:bg-success/20'
-                      : 'bg-danger/10 text-danger hover:bg-danger/20'
+                      : 'bg-danger/15 text-danger-200 hover:bg-danger/25'
                   }`}
                 >
                   {usuario.active ? 'ativo' : 'inativo'}
@@ -178,6 +220,70 @@ function AbaUsuarios() {
         </Tabela>
       )}
     </section>
+  );
+}
+
+/**
+ * Os setores que a pessoa coordena.
+ *
+ * Isto é a mesma curadoria da aba ao lado, vista pelo outro ângulo: lá se
+ * pergunta "quem cuida deste setor?", aqui "de quais setores esta pessoa
+ * cuida?". A segunda pergunta é a que se faz quando chega um gestor novo
+ * respondendo por duas equipes, e é por isso que ela mora na linha da pessoa.
+ *
+ * Coordenar um setor é mais que pertencer a ele: quem pertence publica os
+ * próprios links, quem coordena responde pelos de todo mundo — e enxerga os
+ * links restritos daquele setor.
+ */
+function SetoresCoordenados({ usuario, hubs, aoAdicionar, aoRemover, ocupado }) {
+  const coordenados = usuario.curatorOf ?? [];
+  const atuais = hubs.filter((hub) => coordenados.includes(hub.id));
+  const disponiveis = hubs.filter((hub) => !coordenados.includes(hub.id));
+
+  return (
+    <div className="flex min-w-[210px] flex-wrap items-center gap-1.5">
+      {atuais.map((hub) => (
+        <span
+          key={hub.id}
+          className="pill flex items-center gap-1 bg-tech/10 text-tech-100"
+        >
+          {hub.name}
+          <button
+            type="button"
+            onClick={() => aoRemover(usuario, hub)}
+            disabled={ocupado}
+            aria-label={`Tirar ${hub.name} de ${usuario.name}`}
+            className="rounded transition-colors hover:text-danger-200 disabled:opacity-40"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      ))}
+
+      {atuais.length === 0 && <span className="text-xs text-muted">nenhum</span>}
+
+      {disponiveis.length > 0 && (
+        <select
+          // O valor volta para vazio a cada escolha: é um botão de ação com
+          // cara de lista, não um campo que guarda estado.
+          value=""
+          disabled={ocupado}
+          onChange={(evento) => {
+            const hub = disponiveis.find((item) => item.id === evento.target.value);
+            if (hub) aoAdicionar(usuario, hub);
+          }}
+          aria-label={`Dar mais um setor a ${usuario.name}`}
+          className="rounded-lg border border-dashed border-hairline bg-transparent px-2 py-1 text-xs font-semibold text-muted transition-colors hover:border-tech hover:text-graphite focus:border-tech focus:outline-none disabled:opacity-40"
+        >
+          <option value="">+ setor</option>
+          {disponiveis.map((hub) => (
+            <option key={hub.id} value={hub.id}>
+              {hub.name}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
   );
 }
 
@@ -277,7 +383,7 @@ function AbaCuradores() {
                     }
                   }}
                   aria-label={`Remover ${curador.name} da curadoria de ${curador.hubName}`}
-                  className="rounded p-1.5 text-muted transition-colors hover:bg-danger/5 hover:text-danger"
+                  className="rounded p-1.5 text-muted transition-colors hover:bg-danger/15 hover:text-danger-200"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -390,7 +496,7 @@ function AbaDepartamentos() {
                     }
                   }}
                   aria-label={`Remover o mapeamento do código ${mapeamento.protheusDeptCode}`}
-                  className="rounded p-1.5 text-muted transition-colors hover:bg-danger/5 hover:text-danger"
+                  className="rounded p-1.5 text-muted transition-colors hover:bg-danger/15 hover:text-danger-200"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -407,10 +513,14 @@ const ACOES = { CREATE: 'criou', UPDATE: 'alterou', DELETE: 'removeu' };
 const ENTIDADES = {
   Link: 'link',
   Hub: 'setor',
-  LinkCategory: 'seção',
+  Folder: 'pasta',
   HubCurator: 'curadoria',
   DeptMapping: 'mapeamento',
   User: 'usuário',
+  // Nomes antigos: a auditoria é um registro histórico e continua guardando
+  // linhas de quando as pastas ainda eram seções por setor e atalhos da home.
+  LinkCategory: 'seção',
+  PortalLink: 'atalho da tela inicial',
 };
 
 function AbaAuditoria() {

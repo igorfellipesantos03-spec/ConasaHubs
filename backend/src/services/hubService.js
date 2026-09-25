@@ -37,8 +37,27 @@ export async function assertPodeAlterar(tx, actor, hubId, registro, item) {
   }
 }
 
+/**
+ * A curadoria relida do banco, sobrepondo a que veio no token.
+ *
+ * O token só é reemitido de tempos em tempos. Sem isto, um gestor que acabou de
+ * receber mais um setor esperaria o refresh para vê-lo aparecer no seletor da
+ * home, e quem teve o acesso revogado continuaria enxergando o setor nesse
+ * meio-tempo. Uma consulta a mais é o preço de conceder e revogar valerem na
+ * hora — é a mesma escolha que `assertPodeAlterar` já fazia na escrita.
+ */
+async function comCuradoriaAtual(user) {
+  const curadoria = await prisma.hubCurator.findMany({
+    where: { userId: user.id },
+    select: { hubId: true },
+  });
+  return { ...user, curatorOf: curadoria.map((item) => item.hubId) };
+}
+
 /** Lista os setores para a home, com a contagem de links que o usuário enxerga. */
-export async function listHubs(user) {
+export async function listHubs(usuarioDaSessao) {
+  const user = await comCuradoriaAtual(usuarioDaSessao);
+
   const hubs = await prisma.hub.findMany({
     where: { active: true },
     orderBy: [{ order: 'asc' }, { name: 'asc' }],
@@ -70,18 +89,36 @@ function podeContribuir(user, hubId) {
   return ehCurador(user, hubId) || user.hubId === hubId;
 }
 
-/** Detalhe do setor: categorias com seus links, mais os links sem categoria. */
-export async function getHubBySlug(user, slug) {
-  const hub = await prisma.hub.findUnique({
-    where: { slug },
-    include: {
-      categories: { orderBy: [{ order: 'asc' }, { name: 'asc' }] },
-      links: {
-        where: { active: true },
-        orderBy: [{ order: 'asc' }, { title: 'asc' }],
+/**
+ * Detalhe do setor: as pastas da empresa com os links que este setor arquivou
+ * em cada uma, mais os links que ficaram sem pasta.
+ *
+ * As pastas vêm todas, inclusive as vazias para este setor: elas são a mesma
+ * lista que orbita a home, e quem chega clicando em "Riscos" precisa encontrar
+ * a seção Riscos aqui — ainda que para ler que ela está vazia.
+ */
+export async function getHubBySlug(usuarioDaSessao, slug) {
+  const user = await comCuradoriaAtual(usuarioDaSessao);
+
+  const [hub, folders] = await Promise.all([
+    prisma.hub.findUnique({
+      where: { slug },
+      include: {
+        links: {
+          where: { active: true },
+          orderBy: [{ order: 'asc' }, { title: 'asc' }],
+        },
       },
-    },
-  });
+    }),
+    prisma.folder.findMany({
+      where: { active: true },
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true, slug: true, name: true, description: true,
+        icon: true, color: true, order: true,
+      },
+    }),
+  ]);
 
   if (!hub || !hub.active) throw notFound('Setor não encontrado.');
 
@@ -116,12 +153,11 @@ export async function getHubBySlug(user, slug) {
     color: hub.color,
     canEdit: curador,
     canContribute: podeContribuir(user, hub.id),
-    categories: hub.categories.map((category) => ({
-      ...category,
-      canEdit: alteravel(category),
-      links: links.filter((link) => link.categoryId === category.id).map(decorate),
+    folders: folders.map((folder) => ({
+      ...folder,
+      links: links.filter((link) => link.folderId === folder.id).map(decorate),
     })),
-    uncategorizedLinks: links.filter((link) => !link.categoryId).map(decorate),
+    uncategorizedLinks: links.filter((link) => !link.folderId).map(decorate),
   };
 }
 
@@ -184,72 +220,3 @@ export async function deactivateHub(actor, hubId, ip) {
   });
 }
 
-export async function createCategory(actor, hub, data, ip) {
-  return prisma.$transaction(async (tx) => {
-    const order =
-      data.order ??
-      (await tx.linkCategory.count({ where: { hubId: hub.id } })) + 1;
-
-    const category = await tx.linkCategory.create({
-      data: { hubId: hub.id, name: data.name, order, createdById: actor.id },
-    });
-
-    await recordAudit(tx, {
-      actor,
-      action: 'CREATE',
-      entity: 'LinkCategory',
-      entityId: category.id,
-      entityLabel: `${hub.name} › ${category.name}`,
-      after: category,
-      ip,
-    });
-    return category;
-  });
-}
-
-export async function updateCategory(actor, hub, categoryId, data, ip) {
-  return prisma.$transaction(async (tx) => {
-    const before = await tx.linkCategory.findFirst({
-      where: { id: categoryId, hubId: hub.id },
-    });
-    if (!before) throw notFound('Seção não encontrada.');
-
-    await assertPodeAlterar(tx, actor, hub.id, before, 'esta seção');
-
-    const category = await tx.linkCategory.update({ where: { id: categoryId }, data });
-    await recordAudit(tx, {
-      actor,
-      action: 'UPDATE',
-      entity: 'LinkCategory',
-      entityId: category.id,
-      entityLabel: `${hub.name} › ${category.name}`,
-      before,
-      after: category,
-      ip,
-    });
-    return category;
-  });
-}
-
-/** Remove a seção; os links dentro dela ficam sem categoria (onDelete: SetNull). */
-export async function deleteCategory(actor, hub, categoryId, ip) {
-  return prisma.$transaction(async (tx) => {
-    const before = await tx.linkCategory.findFirst({
-      where: { id: categoryId, hubId: hub.id },
-    });
-    if (!before) throw notFound('Seção não encontrada.');
-
-    await assertPodeAlterar(tx, actor, hub.id, before, 'esta seção');
-
-    await tx.linkCategory.delete({ where: { id: categoryId } });
-    await recordAudit(tx, {
-      actor,
-      action: 'DELETE',
-      entity: 'LinkCategory',
-      entityId: categoryId,
-      entityLabel: `${hub.name} › ${before.name}`,
-      before,
-      ip,
-    });
-  });
-}
