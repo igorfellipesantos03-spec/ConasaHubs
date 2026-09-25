@@ -25,7 +25,8 @@ const booleanFromString = z
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3001),
-  FRONTEND_ORIGIN: z.string().url(),
+  // Normaliza para a origem pura (sem barra final/caminho), que é o que o navegador envia
+  FRONTEND_ORIGIN: z.string().url().transform((value) => new URL(value).origin),
 
   DATABASE_URL: z.string().min(1),
 
